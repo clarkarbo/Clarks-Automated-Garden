@@ -11,8 +11,7 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_PIXELS, PIN_LED, NEO_GRB + NEO_K
 long duration, distance;
 
 //CIRCULATION
-const int relayPin = 12;
-
+const int relayPin = 12; //Circulation pump for whole garden
 
 const int circulationActivationTime = 10000; // 5 seconds
 const int circulationPauseTime = 5000;     // 5 seconds
@@ -28,9 +27,9 @@ const int analogPin2 = A1;
 // Define the duration for calculating average (in milliseconds)
 const int averageDuration = 500;
 
-// Define low and high thresholds
-const int LOW_THRESHOLD = 1;  // Adjust this value based on your application
-const int HIGH_THRESHOLD = 10; // Adjust this value based on your application
+// Define low and high thresholds for float sensors 
+const int LOW_THRESHOLD = 1;  
+const int HIGH_THRESHOLD = 10; 
 
 // Variables for average sensor values
 int averageValue1 = 0;
@@ -38,14 +37,14 @@ int averageValue2 = 0;
 
 // Variables for pump and relay control
 bool pumpRunning = false;
-const int relay4Pin = 9; // Replace with your actual pin number
-const int relay5Pin = 8; // Replace with your actual pin number
-const int relay6Pin = 7; // Replace with your actual pin number
-const int relay7Pin = 13; // Replace with your actual pin number
+const int relay4Pin = 9; // Nutrient A
+const int relay5Pin = 8; // Nutrient B
+const int relay6Pin = 7; // Acid
+const int relay7Pin = 13; // Refill Pump
 
-const int relay4Duration = 10000; // Replace with your actual duration
-const int relay5Duration = 10000; // Replace with your actual duration
-const int relay6Duration = 5000; // Replace with your actual duration
+const int relay4Duration = 10000; // Nutrient A
+const int relay5Duration = 10000; // Nutrient B
+const int relay6Duration = 5000; // Acid 
 
 unsigned long relay4StartTime = 0;
 unsigned long relay5StartTime = 0;
@@ -60,7 +59,7 @@ const int dailyRelayDuration = 10000; // 10 seconds
 
 unsigned long dailyRelayStartTime = 0;
 
-const int dailyRelayPin = 6;  // Replace with your actual pin number
+const int dailyRelayPin = 6;  // Daily Cleaner pump
 
 int getRelayPin(int relay);
 
@@ -82,7 +81,7 @@ void setup() {
   // digitalWrite(relayPin3, HIGH);
 
   // Start serial communication turn off when not debugging !
-  //Serial.begin(9600);
+  Serial.begin(9600);
 
   // Set the analog pins as input
   pinMode(analogPin1, INPUT);
@@ -120,7 +119,6 @@ void loop() {
   // Record start time
   unsigned long startTime = millis();
 
-
   // Trigger ultrasonic sensor
   digitalWrite(TRIGGER_PIN, LOW);
   delayMicroseconds(2);
@@ -156,14 +154,12 @@ void loop() {
   }
   
 
-
   //REFILL AND DOSING
   // Variables to store accumulated values and count
   long accumulatedValue1 = 0;
   long accumulatedValue2 = 0;
   int count = 0;
 
-  
   // Read the analog input values and accumulate them
   while (millis() - startTime < averageDuration) {
     accumulatedValue1 += analogRead(analogPin1);
@@ -183,7 +179,7 @@ void loop() {
   Serial.print("Average Analog Pin A1: ");
   Serial.println(averageValue2);
 
-  // Activation logic using lowSensor
+  // Dosing Activation logic using lowSensor
   if (averageValue1 < LOW_THRESHOLD && averageValue2 < LOW_THRESHOLD && !pumpRunning && distance < 30) {
     Serial.println("Low water level detected. Starting pumps...");
 
@@ -212,7 +208,7 @@ void loop() {
   strip.show();
   delay(100);  // Adjust the delay based on your needs
 
-  // Deactivation logic using highSensor
+  // Refill Pump Deactivation logic using highSensor
   if (averageValue1 > HIGH_THRESHOLD && averageValue2 > HIGH_THRESHOLD && pumpRunning) {
     Serial.println("High water level detected. Pump off. ");
 
