@@ -1,0 +1,136 @@
+// Define the analog input pins
+const int analogPin1 = A0;
+const int analogPin2 = A1;
+
+// Define the duration for calculating average (in milliseconds)
+const int averageDuration = 500;
+
+// Define low and high thresholds
+const int LOW_THRESHOLD = 1;  // Adjust this value based on your application
+const int HIGH_THRESHOLD = 10; // Adjust this value based on your application
+
+// Variables for average sensor values
+int averageValue1 = 0;
+int averageValue2 = 0;
+
+// Variables for pump and relay control
+bool pumpRunning = false;
+const int relay4Pin = 9; // Replace with your actual pin number
+const int relay5Pin = 8; // Replace with your actual pin number
+const int relay6Pin = 7; // Replace with your actual pin number
+const int relay7Pin = 13; // Replace with your actual pin number
+
+const int relay4Duration = 5000; // Replace with your actual duration
+const int relay5Duration = 5000; // Replace with your actual duration
+const int relay6Duration = 5000; // Replace with your actual duration
+
+unsigned long relay4StartTime = 0;
+unsigned long relay5StartTime = 0;
+unsigned long relay6StartTime = 0;
+
+unsigned long lastSerialPrintTime = 0;
+const int serialPrintInterval = 2000; // Print every 2000 milliseconds
+
+void setup() {
+  // Start serial communication
+  Serial.begin(9600);
+
+  // Set the analog pins as input
+  pinMode(analogPin1, INPUT);
+  pinMode(analogPin2, INPUT);
+
+  // Set relay pins as output
+  pinMode(relay4Pin, OUTPUT);
+  pinMode(relay5Pin, OUTPUT);
+  pinMode(relay6Pin, OUTPUT);
+  pinMode(relay7Pin, OUTPUT);
+
+  // Ensure all relay outputs are set to HIGH
+  digitalWrite(relay4Pin, HIGH);
+  digitalWrite(relay5Pin, HIGH);
+  digitalWrite(relay6Pin, HIGH);
+  digitalWrite(relay7Pin, HIGH);
+
+}
+
+void loop() {
+  // Variables to store accumulated values and count
+  long accumulatedValue1 = 0;
+  long accumulatedValue2 = 0;
+  int count = 0;
+
+  // Record start time
+  unsigned long startTime = millis();
+
+  // Read the analog input values and accumulate them
+  while (millis() - startTime < averageDuration) {
+    accumulatedValue1 += analogRead(analogPin1);
+    accumulatedValue2 += analogRead(analogPin2);
+    count++;
+    // Small delay to avoid overwhelming the CPU
+    delay(1);
+  }
+
+  // Calculate average values
+  averageValue1 = accumulatedValue1 / count;
+  averageValue2 = accumulatedValue2 / count;
+
+  // Print the average values to the Serial Monitor
+  Serial.print("Average Analog Pin A0: ");
+  Serial.println(averageValue1);
+  Serial.print("Average Analog Pin A1: ");
+  Serial.println(averageValue2);
+
+  // Activation logic using lowSensor
+  if (averageValue1 < LOW_THRESHOLD && averageValue2 < LOW_THRESHOLD && !pumpRunning) {
+    Serial.println("Low water level detected. Starting pumps...");
+
+    // Activate relays for set durations (besides relay 7 which turns off via highSensor)
+    digitalWrite(relay7Pin, LOW);
+    relay4StartTime = millis();
+    relay5StartTime = millis();
+    relay6StartTime = millis();
+
+    // Flag that at least one pump is running
+    pumpRunning = true;
+  }
+
+  // Deactivation logic using highSensor
+  if (averageValue1 > HIGH_THRESHOLD && averageValue2 > HIGH_THRESHOLD && pumpRunning) {
+    Serial.println("High water level detected. Pump off. ");
+
+    // Stop Refill pump
+    digitalWrite(relay7Pin, HIGH);
+
+    // Reset the pumpRunning flag
+    pumpRunning = false;
+  }
+
+  // Control relay4
+  if (pumpRunning && millis() - relay4StartTime < relay4Duration) {
+    digitalWrite(relay4Pin, LOW);
+  } else {
+    digitalWrite(relay4Pin, HIGH);
+  }
+
+  // Control relay5
+  if (pumpRunning && millis() - relay5StartTime < relay5Duration) {
+    digitalWrite(relay5Pin, LOW);
+  } else {
+    digitalWrite(relay5Pin, HIGH);
+  }
+
+  // Control relay6
+  if (pumpRunning && millis() - relay6StartTime < relay6Duration) {
+    digitalWrite(relay6Pin, LOW);
+  } else {
+    digitalWrite(relay6Pin, HIGH);
+  }
+
+  // Periodic Serial print for pumpRunning variable
+  if (millis() - lastSerialPrintTime >= serialPrintInterval) {
+    Serial.print("pumpRunning status: ");
+    Serial.println(pumpRunning ? "Running" : "Not Running");
+    lastSerialPrintTime = millis();
+  }
+}
