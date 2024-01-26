@@ -1,0 +1,265 @@
+#include <Adafruit_NeoPixel.h>
+
+#define PIN_LED     5    // Pin where your WS2812 LED Stick is connected
+#define NUM_PIXELS  10   // Number of pixels in your LED Stick
+
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_PIXELS, PIN_LED, NEO_GRB + NEO_KHZ800);
+
+#define TRIGGER_PIN 3    // Pin connected to the trigger of the ultrasonic sensor
+#define ECHO_PIN    4    // Pin connected to the echo of the ultrasonic sensor
+
+long duration, distance;
+
+//CIRCULATION
+const int relayPin = 12; //Circulation pump for whole garden
+
+const int circulationActivationTime = 10000; // 5 seconds
+const int circulationPauseTime = 5000;     // 5 seconds
+
+int relayState = HIGH; // Initial state (relay off)
+unsigned long switchTime = 0;
+
+
+//REFILL AND DOSING 
+const int analogPin1 = A0;
+const int analogPin2 = A1;
+
+// Define the duration for calculating average (in milliseconds)
+const int averageDuration = 500;
+
+// Define low and high thresholds for float sensors 
+const int LOW_THRESHOLD = 1;  
+const int HIGH_THRESHOLD = 10; 
+
+// Variables for average sensor values
+int averageValue1 = 0;
+int averageValue2 = 0;
+
+// Variables for pump and relay control
+bool pumpRunning = false;
+const int relay4Pin = 9; // Nutrient A
+const int relay5Pin = 8; // Nutrient B
+const int relay6Pin = 7; // Acid
+const int relay7Pin = 13; // Refill Pump
+
+const int relay4Duration = 10000; // Nutrient A
+const int relay5Duration = 10000; // Nutrient B
+const int relay6Duration = 5000; // Acid 
+
+unsigned long relay4StartTime = 0;
+unsigned long relay5StartTime = 0;
+unsigned long relay6StartTime = 0;
+
+unsigned long lastSerialPrintTime = 0;
+const int serialPrintInterval = 2000; // Print every 2000 milliseconds
+
+// Define the interval and duration for daily relay activation (in milliseconds)
+const unsigned long dailyRelayInterval = 24 * 60 * 60 * 1000; // 24 hours
+const int dailyRelayDuration = 10000; // 10 seconds
+
+unsigned long dailyRelayStartTime = 0;
+
+const int dailyRelayPin = 6;  // Daily Cleaner pump
+
+int getRelayPin(int relay);
+
+
+const unsigned long activationTime = 60000; // 60 seconds in milliseconds
+const unsigned long pauseTime = 300000;     // 30 seconds in milliseconds
+
+
+
+
+void setup() {
+  pinMode(relayPin, OUTPUT);
+  // pinMode(relayPin2, OUTPUT);
+  // pinMode(relayPin3, OUTPUT);
+
+  // Initialize relay pins to HIGH
+  digitalWrite(relayPin, HIGH);
+  // digitalWrite(relayPin2, HIGH);
+  // digitalWrite(relayPin3, HIGH);
+
+  // Start serial communication turn off when not debugging !
+  Serial.begin(9600);
+
+  // Set the analog pins as input
+  pinMode(analogPin1, INPUT);
+  pinMode(analogPin2, INPUT);
+
+  // Set relay pins as output
+  pinMode(relay4Pin, OUTPUT);
+  pinMode(relay5Pin, OUTPUT);
+  pinMode(relay6Pin, OUTPUT);
+  pinMode(relay7Pin, OUTPUT);
+
+  // Initialize relay pins to HIGH
+  digitalWrite(relay4Pin, HIGH);
+  digitalWrite(relay5Pin, HIGH);
+  digitalWrite(relay6Pin, HIGH);
+  digitalWrite(relay7Pin, HIGH);
+
+  digitalWrite(dailyRelayPin, HIGH);
+
+  digitalWrite(relayPin, relayState);
+
+  strip.begin();
+  strip.show();  // Initialize all pixels to 'off'
+  pinMode(TRIGGER_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+
+  pinMode(relayPin, OUTPUT);
+  digitalWrite(relayPin, relayState);
+
+}
+
+void loop() {
+  unsigned long currentTime = millis();
+
+
+  // Trigger ultrasonic sensor
+  digitalWrite(TRIGGER_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIGGER_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIGGER_PIN, LOW);
+
+  // Read the echo pulse
+  duration = pulseIn(ECHO_PIN, HIGH);
+
+  // Calculate distance in cm
+  distance = duration * 0.034 / 2;
+
+  // Output distance to Serial monitor
+  Serial.print("Distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+
+  // Serial.print("Relay: ");
+  // Serial.println(currentCirculationRelay);
+
+if (distance < 4) {
+  strip.fill(strip.Color(255, 0, 0), 0, NUM_PIXELS - 1);  // Red color at half brightness for all LEDs
+} else {
+  int numLEDs = map(distance, 0, 34, NUM_PIXELS, 0);
+  strip.fill(strip.Color(0, 0, 32), 0, numLEDs);  // Blue color at half brightness
+
+  // Turn off the remaining LEDs
+  for (int i = numLEDs; i < NUM_PIXELS; i++) {
+    strip.setPixelColor(i, strip.Color(0, 0, 0));  // Turn off
+  }
+}
+
+  strip.show();
+  delay(100);  // Adjust the delay based on your needs
+
+  // //CIRCULATION
+    if (relayState == HIGH && currentTime - switchTime >= pauseTime) {
+    // Switch the relay state to ON
+    relayState = LOW;
+    switchTime = currentTime;
+    digitalWrite(relayPin, relayState);
+  } else if (relayState == LOW && currentTime - switchTime >= activationTime) {
+    // Switch the relay state to OFF
+    relayState = HIGH;
+    switchTime = currentTime;
+    digitalWrite(relayPin, relayState);
+  }
+  
+
+  //REFILL AND DOSING
+  // Variables to store accumulated values and count
+  long accumulatedValue1 = 0;
+  long accumulatedValue2 = 0;
+  int count = 0;
+
+  // Record start time
+  unsigned long startTime = millis();
+
+  // Read the analog input values and accumulate them
+  while (millis() - startTime < averageDuration) {
+    accumulatedValue1 += analogRead(analogPin1);
+    accumulatedValue2 += analogRead(analogPin2);
+    count++;
+    // Small delay to avoid overwhelming the CPU
+    delay(1);
+  }
+
+  // Calculate average values
+  averageValue1 = accumulatedValue1 / count;
+  averageValue2 = accumulatedValue2 / count;
+
+  // Print the average values to the Serial Monitor
+  Serial.print("Average Analog Pin A0: ");
+  Serial.println(averageValue1);
+  Serial.print("Average Analog Pin A1: ");
+  Serial.println(averageValue2);
+
+  // Dosing Activation logic using lowSensor
+  if (averageValue1 < LOW_THRESHOLD && averageValue2 < LOW_THRESHOLD && !pumpRunning && distance < 30) {
+    Serial.println("Low water level detected. Starting pumps...");
+
+    // Activate relays for set durations (besides relay 7 which turns off via highSensor)
+    digitalWrite(relay7Pin, LOW);
+    relay4StartTime = millis();
+    relay5StartTime = millis();
+    relay6StartTime = millis();
+
+    // Flag that at least one pump is running
+    pumpRunning = true;
+  }
+
+
+  // Refill Pump Deactivation logic using highSensor
+  if (averageValue1 > HIGH_THRESHOLD && averageValue2 > HIGH_THRESHOLD && pumpRunning) {
+    Serial.println("High water level detected. Pump off. ");
+
+    // Stop Refill pump
+    digitalWrite(relay7Pin, HIGH);
+
+    // Reset the pumpRunning flag
+    pumpRunning = false;
+  }
+
+  // Control relay4
+  if (pumpRunning && millis() - relay4StartTime < relay4Duration) {
+    digitalWrite(relay4Pin, LOW);
+  } else {
+    digitalWrite(relay4Pin, HIGH);
+  }
+
+  // Control relay5
+  if (pumpRunning && millis() - relay5StartTime < relay5Duration) {
+    digitalWrite(relay5Pin, LOW);
+  } else {
+    digitalWrite(relay5Pin, HIGH);
+  }
+
+  // Control relay6
+  if (pumpRunning && millis() - relay6StartTime < relay6Duration) {
+    digitalWrite(relay6Pin, LOW);
+  } else {
+    digitalWrite(relay6Pin, HIGH);
+  }
+
+  // Periodic Serial print for pumpRunning variable
+  if (millis() - lastSerialPrintTime >= serialPrintInterval) {
+    Serial.print("pumpRunning status: ");
+    Serial.println(pumpRunning ? "Running" : "Not Running");
+    lastSerialPrintTime = millis();
+  }
+
+  // DAILY CLEANER LOGIC
+  if (currentTime - dailyRelayStartTime >= dailyRelayInterval) {
+    dailyRelayStartTime = currentTime;
+
+    // Activate the 8th relay for 10 seconds
+    digitalWrite(dailyRelayPin, LOW);
+  }
+
+  // Check if it's time to deactivate the relay
+  if (currentTime - dailyRelayStartTime < dailyRelayDuration) {
+    // Deactivate the 8th relay after 10 seconds
+    digitalWrite(dailyRelayPin, HIGH);
+  }
+}
