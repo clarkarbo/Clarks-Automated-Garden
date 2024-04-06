@@ -12,16 +12,16 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_PIXELS, PIN_LED, NEO_GRB + NEO_K
 long duration, distance;
 
 //CIRCULATION
-const int relayPin = 13; //Circulation pump for whole garden
+const int CirculationPin = 13; //Circulation pump for whole garden
 
-const int circulationActivationTime = 60000; // 5 seconds
-const int circulationPauseTime = 300000;     // 5 seconds
+const unsigned long CirculationActivationTime = 300000; // 60 seconds in milliseconds
+const unsigned long CirculationPauseTime = 60000;     // 30 seconds in milliseconds
 
-int relayState = HIGH; // Initial state (relay off)
-unsigned long switchTime = 0;
+int CirculationStartUpState = HIGH; // Initial state (relay off)
+unsigned long CirculationStartTime = 0;
 
 
-//REFILL AND DOSING 
+//Float Sensors  
 const int analogPin1 = 34;
 const int analogPin2 = 35;
 
@@ -38,65 +38,57 @@ int averageValue2 = 0;
 
 // Variables for pump and relay control
 bool pumpRunning = false;
-const int relay4Pin = 14; // Nutrient A
-const int relay5Pin = 27; // Nutrient B
-const int relay6Pin = 26; // Acid
-const int relay7Pin = 12; // Refill Pump
+const int Peri1 = 14; // Nutrient A
+const int Peri2 = 27; // Nutrient B
+const int Peri3 = 26; // Acid
+const int RefillPin = 12; // Refill Pump
 
-const int relay4Duration = 10000; // Nutrient A
-const int relay5Duration = 10000; // Nutrient B
-const int relay6Duration = 5000; // Acid 
+const int Peri1Duration = 10000; // Nutrient A
+const int Peri2Duration = 10000; // Nutrient B
+const int Peri3Duration = 5000; // Acid 
 
-unsigned long relay4StartTime = 0;
-unsigned long relay5StartTime = 0;
-unsigned long relay6StartTime = 0;
+unsigned long Peri1StartTime = 0;
+unsigned long Peri2StartTime = 0;
+unsigned long Peri3StartTime = 0;
 
 unsigned long lastSerialPrintTime = 0;
 const int serialPrintInterval = 2000; // Print every 2000 milliseconds
 
 // Define the interval and duration for daily relay activation (in milliseconds)
-const unsigned long dailyRelayInterval = 24 * 60 * 60 * 1000; // 24 hours
-const int dailyRelayDuration = 10000; // 10 seconds
+const unsigned long CleanerPauseTime = 10000; //24 * 60 * 60 * 1000; // 24 hours
+const unsigned long CleanerActivationTime = 60000; // 10 seconds
 
-unsigned long dailyRelayStartTime = 0;
+const int Peri4 = 25;  // Daily Cleaner Peri
 
-const int dailyRelayPin = 25;  // Daily Cleaner pump
-
-const unsigned long activationTime = 300000; // 60 seconds in milliseconds
-const unsigned long pauseTime = 60000;     // 30 seconds in milliseconds
-
-
-
+int Peri4StartUpState = LOW; // Initial state (relay off)
+unsigned long Peri4StartTime = 0;
 
 void setup() {
   
-  // digitalWrite(relayPin, LOW);
-  pinMode(relayPin, OUTPUT);
-  digitalWrite(relayPin, relayState);
-
+  pinMode(CirculationPin, OUTPUT);
+  digitalWrite(CirculationPin, CirculationStartUpState);
   
   // Start serial communication turn off when not debugging !
-  // Serial.begin(9600);
+  //Serial.begin(115200);
 
   // Set the analog pins as input
   pinMode(analogPin1, INPUT);
   pinMode(analogPin2, INPUT);
 
   // Set relay pins as output
-  pinMode(relay4Pin, OUTPUT);
-  pinMode(relay5Pin, OUTPUT);
-  pinMode(relay6Pin, OUTPUT);
-  pinMode(relay7Pin, OUTPUT);
+  pinMode(Peri1, OUTPUT);
+  pinMode(Peri2, OUTPUT);
+  pinMode(Peri3, OUTPUT);
+  pinMode(RefillPin, OUTPUT);
 
-  // Initialize relay pins to HIGH
-  digitalWrite(relay4Pin, LOW);
-  digitalWrite(relay5Pin, LOW);
-  digitalWrite(relay6Pin, LOW);
-  digitalWrite(relay7Pin, LOW);
+  // Initialize refill relay pins
+  digitalWrite(Peri1, LOW);
+  digitalWrite(Peri2, LOW);
+  digitalWrite(Peri3, LOW);
+  digitalWrite(RefillPin, LOW);
 
-  digitalWrite(dailyRelayPin, LOW);
-  pinMode(dailyRelayPin, OUTPUT);
-
+  digitalWrite(Peri4, Peri4StartUpState);
+  pinMode(Peri4, OUTPUT);
 
   strip.begin();
   strip.show();  // Initialize all pixels to 'off'
@@ -105,13 +97,12 @@ void setup() {
   pinMode(ECHO_PIN, INPUT);
 
   // Enable the watchdog timer with a timeout of 4 seconds
-  esp_task_wdt_init(10, true);
+  //esp_task_wdt_init(10, true);
 
 }
 
 void loop() {
   unsigned long currentTime = millis();
-
 
   // Trigger ultrasonic sensor
   digitalWrite(TRIGGER_PIN, LOW);
@@ -150,18 +141,30 @@ if (distance < 4) {
   // delay(100);  // Adjust the delay based on your needs
 
   // //CIRCULATION
-    if (relayState == HIGH && currentTime - switchTime >= pauseTime) {
+    if (CirculationStartUpState == HIGH && currentTime - CirculationStartTime >= CirculationPauseTime) {
     // Switch the relay state to ON
-    relayState = LOW;
-    switchTime = currentTime;
-    digitalWrite(relayPin, relayState);
-  } else if (relayState == LOW && currentTime - switchTime >= activationTime) {
+    CirculationStartUpState = LOW;
+    CirculationStartTime = currentTime;
+    digitalWrite(CirculationPin, CirculationStartUpState);
+  } else if (CirculationStartUpState == LOW && currentTime - CirculationStartTime >= CirculationActivationTime) {
     // Switch the relay state to OFF
-    relayState = HIGH;
-    switchTime = currentTime;
-    digitalWrite(relayPin, relayState);
+    CirculationStartUpState = HIGH;
+    CirculationStartTime = currentTime;
+    digitalWrite(CirculationPin, CirculationStartUpState);
   }
   
+  // //Cleaner 
+    if (Peri4StartUpState == HIGH && currentTime - Peri4StartTime >= CleanerPauseTime) {
+    // Switch the relay state to ON
+    Peri4StartUpState = LOW;
+    Peri4StartTime = currentTime;
+    digitalWrite(Peri4, Peri4StartUpState);
+  } else if (Peri4StartUpState == LOW && currentTime - Peri4StartTime >= CleanerActivationTime) {
+    // Switch the relay state to OFF
+    Peri4StartUpState = HIGH;
+    Peri4StartTime = currentTime;
+    digitalWrite(Peri4, Peri4StartUpState);
+  }
 
   //REFILL AND DOSING
   // Variables to store accumulated values and count
@@ -196,10 +199,10 @@ if (distance < 4) {
     Serial.println("Low water level detected. Starting pumps...");
 
     // Activate relays for set durations (besides relay 7 which turns off via highSensor)
-    digitalWrite(relay7Pin, HIGH);
-    relay4StartTime = millis();
-    relay5StartTime = millis();
-    relay6StartTime = millis();
+    digitalWrite(RefillPin, HIGH);
+    Peri1StartTime = millis();
+    Peri2StartTime = millis();
+    Peri3StartTime = millis();
 
     // Flag that at least one pump is running
     pumpRunning = true;
@@ -211,31 +214,31 @@ if (distance < 4) {
     Serial.println("High water level detected. Pump off. ");
 
     // Stop Refill pump
-    digitalWrite(relay7Pin, LOW);
+    digitalWrite(RefillPin, LOW);
 
     // Reset the pumpRunning flag
     pumpRunning = false;
   }
 
-  // Control relay4
-  if (pumpRunning && millis() - relay4StartTime < relay4Duration) {
-    digitalWrite(relay4Pin, HIGH);
+  // Control Peri1
+  if (pumpRunning && millis() - Peri1StartTime < Peri1Duration) {
+    digitalWrite(Peri1, HIGH);
   } else {
-    digitalWrite(relay4Pin, LOW);
+    digitalWrite(Peri1, LOW);
   }
 
-  // Control relay5
-  if (pumpRunning && millis() - relay5StartTime < relay5Duration) {
-    digitalWrite(relay5Pin, HIGH);
+  // Control Peri2
+  if (pumpRunning && millis() - Peri2StartTime < Peri2Duration) {
+    digitalWrite(Peri2, HIGH);
   } else {
-    digitalWrite(relay5Pin, LOW);
+    digitalWrite(Peri2, LOW);
   }
 
-  // Control relay6
-  if (pumpRunning && millis() - relay6StartTime < relay6Duration) {
-    digitalWrite(relay6Pin, HIGH);
+  // Control Peri3
+  if (pumpRunning && millis() - Peri3StartTime < Peri3Duration) {
+    digitalWrite(Peri3, HIGH);
   } else {
-    digitalWrite(relay6Pin, LOW);
+    digitalWrite(Peri3, LOW);
   }
 
   // Periodic Serial print for pumpRunning variable
@@ -245,22 +248,8 @@ if (distance < 4) {
     lastSerialPrintTime = millis();
   }
 
-  // DAILY CLEANER LOGIC
-  if (currentTime - dailyRelayStartTime >= dailyRelayInterval) {
-    dailyRelayStartTime = currentTime;
-
-    // Activate the 8th relay for 10 seconds
-    digitalWrite(dailyRelayPin, HIGH);
-  }
-
-  // Check if it's time to deactivate the relay
-  if (currentTime - dailyRelayStartTime < dailyRelayDuration) {
-    // Deactivate the 8th relay after 10 seconds
-    digitalWrite(dailyRelayPin, LOW);
-  }
-
   // Reset the watchdog timer to prevent a reset
-  esp_task_wdt_reset();
+  //esp_task_wdt_reset();
 }
 
 // // Watchdog interrupt service routine
@@ -271,4 +260,4 @@ if (distance < 4) {
 //   // Serial.println("Watchdog reset!");
 //   // Reset the Arduino
 //   asm volatile ("  jmp 0");
-// }
+// }  `
