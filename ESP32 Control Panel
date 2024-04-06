@@ -1,6 +1,7 @@
 #include <Adafruit_NeoPixel.h>
 #include <esp_task_wdt.h>
 
+ //WATER LEVEL ULTRASONIC SENSOR AND LED INDICATOR
 #define PIN_LED     21    // Pin where your WS2812 LED Stick is connected
 #define NUM_PIXELS  10   // Number of pixels in your LED Stick
 
@@ -11,17 +12,44 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_PIXELS, PIN_LED, NEO_GRB + NEO_K
 
 long duration, distance;
 
-//CIRCULATION
-const int CirculationPin = 13; //Circulation pump for whole garden
+//const int LEDbrightness = 30;
+//const int ReservoirDepth = 31;
+//const int MinimumRefillDepth = 28; 
 
-const unsigned long CirculationActivationTime = 300000; // 60 seconds in milliseconds
-const unsigned long CirculationPauseTime = 60000;     // 30 seconds in milliseconds
+//CIRCULATION
+const int CirculationPin = 13; 
+
+const unsigned long CirculationActivationTime = 300000; // ADJUSTABLE VARIABLE (positive values only 1-10000)
+const unsigned long CirculationPauseTime = 60000;     // ADJUSTABLE VARIABLE (positive values only 1-10000)
 
 int CirculationStartUpState = HIGH; // Initial state (relay off)
 unsigned long CirculationStartTime = 0;
 
+// CLEANER 
+const int Peri4 = 25;  // Cleaner Peri (peri4) 
 
-//Float Sensors  
+const unsigned long CleanerPauseTime = 10000;      //ADJUSTABLE VARIABLE (positive values only 1-10000)
+const unsigned long CleanerActivationTime = 60000; //ADJUSTABLE VARIABLE (positive values only 1-10000)
+
+int Peri4StartUpState = LOW; // Initial state (relay off)
+unsigned long Peri4StartTime = 0;
+
+// REFILL AND DOSING  
+bool pumpRunning = false;
+const int Peri1 = 14; // Nutrient A (peri1)
+const int Peri2 = 27; // Nutrient B (peri2)
+const int Peri3 = 26; // Acid (peri3) 
+const int RefillPin = 12; // Refill Pump
+
+const int Peri1Duration = 10000; // Nutrient A---ADJUSTABLE VARIABLE (positive values only 1-10000)
+const int Peri2Duration = 10000; // Nutrient B---ADJUSTABLE VARIABLE (positive values only 1-10000)
+const int Peri3Duration = 5000; // Acid---ADJUSTABLE VARIABLE (positive values only 1-10000)
+
+unsigned long Peri1StartTime = 0;
+unsigned long Peri2StartTime = 0;
+unsigned long Peri3StartTime = 0;
+
+//FLOAT SENSORS   
 const int analogPin1 = 34;
 const int analogPin2 = 35;
 
@@ -36,44 +64,25 @@ const int HIGH_THRESHOLD = 10;
 int averageValue1 = 0;
 int averageValue2 = 0;
 
-// Variables for pump and relay control
-bool pumpRunning = false;
-const int Peri1 = 14; // Nutrient A
-const int Peri2 = 27; // Nutrient B
-const int Peri3 = 26; // Acid
-const int RefillPin = 12; // Refill Pump
-
-const int Peri1Duration = 10000; // Nutrient A
-const int Peri2Duration = 10000; // Nutrient B
-const int Peri3Duration = 5000; // Acid 
-
-unsigned long Peri1StartTime = 0;
-unsigned long Peri2StartTime = 0;
-unsigned long Peri3StartTime = 0;
-
 unsigned long lastSerialPrintTime = 0;
 const int serialPrintInterval = 2000; // Print every 2000 milliseconds
 
-// Define the interval and duration for daily relay activation (in milliseconds)
-const unsigned long CleanerPauseTime = 10000; //24 * 60 * 60 * 1000; // 24 hours
-const unsigned long CleanerActivationTime = 60000; // 10 seconds
-
-const int Peri4 = 25;  // Daily Cleaner Peri
-
-int Peri4StartUpState = LOW; // Initial state (relay off)
-unsigned long Peri4StartTime = 0;
 
 void setup() {
-  
-  pinMode(CirculationPin, OUTPUT);
-  digitalWrite(CirculationPin, CirculationStartUpState);
-  
   // Start serial communication turn off when not debugging !
   //Serial.begin(115200);
 
-  // Set the analog pins as input
-  pinMode(analogPin1, INPUT);
-  pinMode(analogPin2, INPUT);
+  strip.begin();
+  strip.show();  // Initialize all pixels to 'off'
+
+  pinMode(TRIGGER_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+
+  pinMode(CirculationPin, OUTPUT);
+  digitalWrite(CirculationPin, CirculationStartUpState);
+
+  digitalWrite(Peri4, Peri4StartUpState);
+  pinMode(Peri4, OUTPUT);
 
   // Set relay pins as output
   pinMode(Peri1, OUTPUT);
@@ -86,15 +95,10 @@ void setup() {
   digitalWrite(Peri2, LOW);
   digitalWrite(Peri3, LOW);
   digitalWrite(RefillPin, LOW);
-
-  digitalWrite(Peri4, Peri4StartUpState);
-  pinMode(Peri4, OUTPUT);
-
-  strip.begin();
-  strip.show();  // Initialize all pixels to 'off'
-
-  pinMode(TRIGGER_PIN, OUTPUT);
-  pinMode(ECHO_PIN, INPUT);
+  
+  // Set the analog pins as input
+  pinMode(analogPin1, INPUT);
+  pinMode(analogPin2, INPUT);
 
   // Enable the watchdog timer with a timeout of 4 seconds
   //esp_task_wdt_init(10, true);
@@ -104,6 +108,7 @@ void setup() {
 void loop() {
   unsigned long currentTime = millis();
 
+  //WATER LEVEL ULTRASONIC SENSOR AND LED INDICATOR
   // Trigger ultrasonic sensor
   digitalWrite(TRIGGER_PIN, LOW);
   delayMicroseconds(2);
@@ -126,10 +131,10 @@ void loop() {
   // Serial.println(currentCirculationRelay);
 
 if (distance < 4) {
-  strip.fill(strip.Color(255, 0, 0), 0, NUM_PIXELS);  // Red color at half brightness for all LEDs
+  strip.fill(strip.Color(255, 0, 0), 0, NUM_PIXELS);  // Red color for all LEDs
 } else {
-  int numLEDs = map(distance, 0, 31, NUM_PIXELS, 0);
-  strip.fill(strip.Color(0, 0, 32), 0, numLEDs);  // Blue color at half brightness                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+  int numLEDs = map(distance, 0, 31, NUM_PIXELS, 0);  //ADJUSTABLE VARIABLE Reservoir depth  (positive values only 5-135)
+  strip.fill(strip.Color(0, 0, 32), 0, numLEDs);  // Blue color at half brightness                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
 
   // Turn off the remaining LEDs
   for (int i = numLEDs; i < NUM_PIXELS; i++) {
@@ -140,7 +145,7 @@ if (distance < 4) {
   strip.show();
   // delay(100);  // Adjust the delay based on your needs
 
-  // //CIRCULATION
+  // //CIRCULATION PUMP 
     if (CirculationStartUpState == HIGH && currentTime - CirculationStartTime >= CirculationPauseTime) {
     // Switch the relay state to ON
     CirculationStartUpState = LOW;
@@ -153,7 +158,7 @@ if (distance < 4) {
     digitalWrite(CirculationPin, CirculationStartUpState);
   }
   
-  // //Cleaner 
+  // //CLEANER PERI 
     if (Peri4StartUpState == HIGH && currentTime - Peri4StartTime >= CleanerPauseTime) {
     // Switch the relay state to ON
     Peri4StartUpState = LOW;
@@ -194,7 +199,7 @@ if (distance < 4) {
   Serial.print("Average Analog Pin A1: ");
   Serial.println(averageValue2);
 
-  // Dosing Activation logic using lowSensor
+  // Dosing Activation logic using lowSensor 
   if (averageValue1 < LOW_THRESHOLD && averageValue2 < LOW_THRESHOLD && !pumpRunning && distance < 28) {
     Serial.println("Low water level detected. Starting pumps...");
 
