@@ -1,6 +1,8 @@
 #include <Adafruit_NeoPixel.h>
 #include <esp_task_wdt.h>
 
+float MillilitersPerSecond = 2.0; // ADJUSTABLE VARIABLE (positive values only 1-100)
+
  //WATER LEVEL ULTRASONIC SENSOR AND LED INDICATOR
 #define PIN_LED     21    // Pin where your WS2812 LED Stick is connected
 #define NUM_PIXELS  10   // Number of pixels in your LED Stick
@@ -12,15 +14,21 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_PIXELS, PIN_LED, NEO_GRB + NEO_K
 
 long duration, distance;
 
-//const int LEDbrightness = 30;
-//const int ReservoirDepth = 31;
-//const int MinimumRefillDepth = 28; 
+//const int LEDbrightness = 30; ADJUSTABLE VARIABLE (positive values only 0-30)
+//const int ReservoirDepth = 31; //ADJUSTABLE VARIABLE (positive values only 1-150)
+//const int MinimumRefillDepth = 28; //ADJUSTABLE VARIABLE (positive values only 1-150)
 
 //CIRCULATION
 const int CirculationPin = 13; 
 
-const unsigned long CirculationActivationTime = 300000; // ADJUSTABLE VARIABLE (positive values only 1-10000)
-const unsigned long CirculationPauseTime = 60000;     // ADJUSTABLE VARIABLE (positive values only 1-10000)
+//const unsigned long CirculationActivationTime = 300000; // ADJUSTABLE VARIABLE (positive values only 1-10000)
+//const unsigned long CirculationPauseTime = 60000;     // ADJUSTABLE VARIABLE (positive values only 1-10000)
+
+const unsigned long CirculationActivationMinutes = 5; // ADJUSTABLE VARIABLE (positive values only 1-10000)
+const unsigned long CirculationPauseMinutes = 1;     // ADJUSTABLE VARIABLE (positive values only 1-10000)
+
+const unsigned long CirculationActivationTime = CirculationActivationMinutes * 60000UL;
+const unsigned long CirculationPauseTime = CirculationPauseMinutes * 60000UL;
 
 int CirculationStartUpState = HIGH; // Initial state (relay off)
 unsigned long CirculationStartTime = 0;
@@ -28,8 +36,16 @@ unsigned long CirculationStartTime = 0;
 // CLEANER 
 const int Peri4 = 25;  // Cleaner Peri (peri4) 
 
-const unsigned long CleanerPauseTime = 10000;      //ADJUSTABLE VARIABLE (positive values only 1-10000)
-const unsigned long CleanerActivationTime = 60000; //ADJUSTABLE VARIABLE (positive values only 1-10000)
+//const unsigned long CleanerPauseTime = 10000;      //ADJUSTABLE VARIABLE (positive values only 1-10000)
+//const unsigned long CleanerActivationTime = 60000; //ADJUSTABLE VARIABLE (positive values only 1-10000)
+
+//const unsigned long CleanerActivationSeconds = 60;   // ADJUSTABLE VARIABLE (positive values only 1-10000)
+float CleanerMillilitersPerActivation = 10.0; // ADJUSTABLE VARIABLE (positive values only 1-10000)
+const unsigned long CleanerPauseHours = 1;           // ADJUSTABLE VARIABLE (positive values only 1-10000)
+
+//const unsigned long CleanerActivationTime = CleanerActivationSeconds * 1000UL;
+const unsigned long CleanerPauseTime = CleanerPauseHours * 3600000UL;
+const unsigned long CleanerActivationTime = (CleanerMillilitersPerActivation / MillilitersPerSecond) * 1000; // Convert seconds to milliseconds
 
 int Peri4StartUpState = LOW; // Initial state (relay off)
 unsigned long Peri4StartTime = 0;
@@ -41,9 +57,25 @@ const int Peri2 = 27; // Nutrient B (peri2)
 const int Peri3 = 26; // Acid (peri3) 
 const int RefillPin = 12; // Refill Pump
 
-const int Peri1Duration = 10000; // Nutrient A---ADJUSTABLE VARIABLE (positive values only 1-10000)
-const int Peri2Duration = 10000; // Nutrient B---ADJUSTABLE VARIABLE (positive values only 1-10000)
-const int Peri3Duration = 5000; // Acid---ADJUSTABLE VARIABLE (positive values only 1-10000)
+const float TotalGallonsPerRefill = 1;  //ADJUSTABLE VARIABLE (positive values only 1-10000)
+
+const float Peri1MillilitersPerGallon = 10;    // Nutrient A---ADJUSTABLE VARIABLE (positive values only 1-10000)
+const float Peri2MillilitersPerGallon = 10;   // Nutrient B---ADJUSTABLE VARIABLE (positive values only 1-10000)
+const float Peri3MillilitersPerGallon = 5;   // Acid---ADJUSTABLE VARIABLE (positive values only 1-10000)
+
+//const int Peri1Duration = 10000; 
+//const int Peri2Duration = 10000; 
+//const int Peri3Duration = 5000; 
+
+  // Calculate total volume of liquid per refill for each peri
+  float Peri1VolumePerRefill = TotalGallonsPerRefill * Peri1MillilitersPerGallon;
+  float Peri2VolumePerRefill = TotalGallonsPerRefill * Peri2MillilitersPerGallon;
+  float Peri3VolumePerRefill = TotalGallonsPerRefill * Peri3MillilitersPerGallon;
+
+  // Calculate duration to run each peri based on ml per second
+  unsigned long Peri1Duration = (Peri1VolumePerRefill / MillilitersPerSecond) * 1000; // Convert seconds to milliseconds
+  unsigned long Peri2Duration = (Peri2VolumePerRefill / MillilitersPerSecond) * 1000;
+  unsigned long Peri3Duration = (Peri3VolumePerRefill / MillilitersPerSecond) * 1000;
 
 unsigned long Peri1StartTime = 0;
 unsigned long Peri2StartTime = 0;
