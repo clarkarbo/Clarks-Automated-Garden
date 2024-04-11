@@ -1,7 +1,7 @@
 #include <Adafruit_NeoPixel.h>
 #include <esp_task_wdt.h>
 
-float MillilitersPerSecond = 2.0; // ADJUSTABLE VARIABLE (positive values only 1-100)
+float MillilitersPerSecond = 10.0; // ADJUSTABLE VARIABLE (positive values only 1-100)
 
  //WATER LEVEL ULTRASONIC SENSOR AND LED INDICATOR
 #define PIN_LED     21    // Pin where your WS2812 LED Stick is connected
@@ -14,9 +14,9 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_PIXELS, PIN_LED, NEO_GRB + NEO_K
 
 long duration, distance;
 
-//const int LEDbrightness = 30; ADJUSTABLE VARIABLE (positive values only 0-30)
-//const int ReservoirDepth = 31; //ADJUSTABLE VARIABLE (positive values only 1-150)
-//const int MinimumRefillDepth = 28; //ADJUSTABLE VARIABLE (positive values only 1-150)
+const int LEDbrightness = 30; //ADJUSTABLE VARIABLE (positive values only 0-30)
+const int ReservoirDepth = 31; //ADJUSTABLE VARIABLE (positive values only 1-150)
+const int MinimumRefillDepth = 28; //ADJUSTABLE VARIABLE (positive values only 1-150)
 
 //CIRCULATION
 const int CirculationPin = 13; 
@@ -24,8 +24,8 @@ const int CirculationPin = 13;
 //const unsigned long CirculationActivationTime = 300000; // ADJUSTABLE VARIABLE (positive values only 1-10000)
 //const unsigned long CirculationPauseTime = 60000;     // ADJUSTABLE VARIABLE (positive values only 1-10000)
 
-const unsigned long CirculationActivationMinutes = 5; // ADJUSTABLE VARIABLE (positive values only 1-10000)
-const unsigned long CirculationPauseMinutes = 1;     // ADJUSTABLE VARIABLE (positive values only 1-10000)
+const unsigned long CirculationActivationMinutes = 1; // ADJUSTABLE VARIABLE (positive values only 1-10000)
+const unsigned long CirculationPauseMinutes = 5;     // ADJUSTABLE VARIABLE (positive values only 1-10000)
 
 const unsigned long CirculationActivationTime = CirculationActivationMinutes * 60000UL;
 const unsigned long CirculationPauseTime = CirculationPauseMinutes * 60000UL;
@@ -41,10 +41,10 @@ const int Peri4 = 25;  // Cleaner Peri (peri4)
 
 //const unsigned long CleanerActivationSeconds = 60;   // ADJUSTABLE VARIABLE (positive values only 1-10000)
 float CleanerMillilitersPerActivation = 10.0; // ADJUSTABLE VARIABLE (positive values only 1-10000)
-const unsigned long CleanerPauseHours = 1;           // ADJUSTABLE VARIABLE (positive values only 1-10000)
+const unsigned long CleanerPauseHours = 30000;           // ADJUSTABLE VARIABLE (positive values only 1-10000)
 
 //const unsigned long CleanerActivationTime = CleanerActivationSeconds * 1000UL;
-const unsigned long CleanerPauseTime = CleanerPauseHours * 3600000UL;
+const unsigned long CleanerPauseTime = CleanerPauseHours; //* 3600000UL;
 const unsigned long CleanerActivationTime = (CleanerMillilitersPerActivation / MillilitersPerSecond) * 1000; // Convert seconds to milliseconds
 
 int Peri4StartUpState = LOW; // Initial state (relay off)
@@ -165,8 +165,8 @@ void loop() {
 if (distance < 4) {
   strip.fill(strip.Color(255, 0, 0), 0, NUM_PIXELS);  // Red color for all LEDs
 } else {
-  int numLEDs = map(distance, 0, 31, NUM_PIXELS, 0);  //ADJUSTABLE VARIABLE Reservoir depth  (positive values only 5-135)
-  strip.fill(strip.Color(0, 0, 32), 0, numLEDs);  // Blue color at half brightness                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+  int numLEDs = map(distance, 0, ReservoirDepth, NUM_PIXELS, 0);  //ADJUSTABLE VARIABLE Reservoir depth  (positive values only 5-135)
+  strip.fill(strip.Color(0, 0, LEDbrightness), 0, numLEDs);  // Blue color at half brightness                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
 
   // Turn off the remaining LEDs
   for (int i = numLEDs; i < NUM_PIXELS; i++) {
@@ -178,12 +178,12 @@ if (distance < 4) {
   // delay(100);  // Adjust the delay based on your needs
 
   // //CIRCULATION PUMP 
-    if (CirculationStartUpState == HIGH && currentTime - CirculationStartTime >= CirculationPauseTime) {
+    if (CirculationStartUpState == HIGH && currentTime - CirculationStartTime >= CirculationActivationTime) {
     // Switch the relay state to ON
     CirculationStartUpState = LOW;
     CirculationStartTime = currentTime;
     digitalWrite(CirculationPin, CirculationStartUpState);
-  } else if (CirculationStartUpState == LOW && currentTime - CirculationStartTime >= CirculationActivationTime) {
+  } else if (CirculationStartUpState == LOW && currentTime - CirculationStartTime >= CirculationPauseTime) {
     // Switch the relay state to OFF
     CirculationStartUpState = HIGH;
     CirculationStartTime = currentTime;
@@ -191,12 +191,12 @@ if (distance < 4) {
   }
   
   // //CLEANER PERI 
-    if (Peri4StartUpState == HIGH && currentTime - Peri4StartTime >= CleanerPauseTime) {
+    if (Peri4StartUpState == HIGH && currentTime - Peri4StartTime >= CleanerActivationTime) {
     // Switch the relay state to ON
     Peri4StartUpState = LOW;
     Peri4StartTime = currentTime;
     digitalWrite(Peri4, Peri4StartUpState);
-  } else if (Peri4StartUpState == LOW && currentTime - Peri4StartTime >= CleanerActivationTime) {
+  } else if (Peri4StartUpState == LOW && currentTime - Peri4StartTime >= CleanerPauseTime) {
     // Switch the relay state to OFF
     Peri4StartUpState = HIGH;
     Peri4StartTime = currentTime;
@@ -232,7 +232,7 @@ if (distance < 4) {
   Serial.println(averageValue2);
 
   // Dosing Activation logic using lowSensor 
-  if (averageValue1 < LOW_THRESHOLD && averageValue2 < LOW_THRESHOLD && !pumpRunning && distance < 28) {
+  if (averageValue1 < LOW_THRESHOLD && averageValue2 < LOW_THRESHOLD && !pumpRunning && distance < MinimumRefillDepth) {
     Serial.println("Low water level detected. Starting pumps...");
 
     // Activate relays for set durations (besides relay 7 which turns off via highSensor)
