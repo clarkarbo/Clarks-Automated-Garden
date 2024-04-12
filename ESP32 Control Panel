@@ -1,7 +1,7 @@
 #include <Adafruit_NeoPixel.h>
 #include <esp_task_wdt.h>
 
-float MillilitersPerSecond = 10.0; // ADJUSTABLE VARIABLE (positive values only 1-100)
+float MillilitersPerSecond = 1.6; // ADJUSTABLE VARIABLE (positive values only 1-100)
 
  //WATER LEVEL ULTRASONIC SENSOR AND LED INDICATOR
 #define PIN_LED     21    // Pin where your WS2812 LED Stick is connected
@@ -15,7 +15,7 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_PIXELS, PIN_LED, NEO_GRB + NEO_K
 long duration, distance;
 
 const int LEDbrightness = 30; //ADJUSTABLE VARIABLE (positive values only 0-30)
-const int ReservoirDepth = 31; //ADJUSTABLE VARIABLE (positive values only 1-150)
+const int ReservoirDepth = 30; //ADJUSTABLE VARIABLE (positive values only 1-150)
 const int MinimumRefillDepth = 28; //ADJUSTABLE VARIABLE (positive values only 1-150)
 
 //CIRCULATION
@@ -57,15 +57,11 @@ const int Peri2 = 27; // Nutrient B (peri2)
 const int Peri3 = 26; // Acid (peri3) 
 const int RefillPin = 12; // Refill Pump
 
-const float TotalGallonsPerRefill = 1;  //ADJUSTABLE VARIABLE (positive values only 1-10000)
+const float TotalGallonsPerRefill = 5;  //ADJUSTABLE VARIABLE (positive values only 1-10000)
 
-const float Peri1MillilitersPerGallon = 10;    // Nutrient A---ADJUSTABLE VARIABLE (positive values only 1-10000)
-const float Peri2MillilitersPerGallon = 10;   // Nutrient B---ADJUSTABLE VARIABLE (positive values only 1-10000)
-const float Peri3MillilitersPerGallon = 5;   // Acid---ADJUSTABLE VARIABLE (positive values only 1-10000)
-
-//const int Peri1Duration = 10000; 
-//const int Peri2Duration = 10000; 
-//const int Peri3Duration = 5000; 
+const float Peri1MillilitersPerGallon = 5;    // Nutrient A---ADJUSTABLE VARIABLE (positive values only 1-10000)
+const float Peri2MillilitersPerGallon = 5;   // Nutrient B---ADJUSTABLE VARIABLE (positive values only 1-10000)
+const float Peri3MillilitersPerGallon = 2.5;   // Acid---ADJUSTABLE VARIABLE (positive values only 1-10000)
 
   // Calculate total volume of liquid per refill for each peri
   float Peri1VolumePerRefill = TotalGallonsPerRefill * Peri1MillilitersPerGallon;
