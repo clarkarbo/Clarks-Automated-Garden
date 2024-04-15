@@ -15,8 +15,8 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_PIXELS, PIN_LED, NEO_GRB + NEO_K
 long duration, distance;
 
 const int LEDbrightness = 30; //ADJUSTABLE VARIABLE (positive values only 0-30)
-const int ReservoirDepth = 30; //ADJUSTABLE VARIABLE (positive values only 1-150)
-const int MinimumRefillDepth = 28; //ADJUSTABLE VARIABLE (positive values only 1-150)
+const int ReservoirDepth = 25; //ADJUSTABLE VARIABLE (positive values only 1-150)
+const int MinimumRefillDepth = 23; //ADJUSTABLE VARIABLE (positive values only 1-150)
 
 //CIRCULATION
 const int CirculationPin = 13; 
