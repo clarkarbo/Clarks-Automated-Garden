@@ -1,7 +1,137 @@
 #include <Adafruit_NeoPixel.h>
 #include <esp_task_wdt.h>
+#include <BLEDevice.h>
+#include <BLEUtils.h>
+#include <BLEServer.h>
+#include <BLE2902.h>
 
+// BLE Service and Characteristic UUIDs
+#define SERVICE_UUID        "0000ffe0-0000-1000-8000-00805f9b34fb"
+
+#define NUM_CHARACTERISTICS 12
+
+const char* CHARACTERISTICS[NUM_CHARACTERISTICS] = {
+    "0000ffe1-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_MillilitersPerSecond
+    "0000ffe2-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_LEDbrightness
+    "0000ffe3-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_ReservoirDepth
+    "0000ffe4-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_MinimumRefillDepth
+    "0000ffe5-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_CirculationActivationMinutes
+    "0000ffe6-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_CirculationPauseMinutes
+    "0000ffe7-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_CleanerMillilitersPerActivation
+    "0000ffe8-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_CleanerPauseHours
+    "0000ffe9-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_TotalGallonsPerRefill
+    "0000ffea-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_Peri1MillilitersPerGallon
+    "0000ffeb-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_Peri2MillilitersPerGallon
+    "0000ffec-0000-1000-8000-00805f9b34fb"  // CHARACTERISTIC_Peri3MillilitersPerGallon
+};
+
+// Global variables
 float MillilitersPerSecond = 1.6; // ADJUSTABLE VARIABLE (positive values only 1-100)
+int LEDbrightness = 30; //ADJUSTABLE VARIABLE (positive values only 0-30)
+int ReservoirDepth = 25; //ADJUSTABLE VARIABLE (positive values only 1-150)
+int MinimumRefillDepth = 23; //ADJUSTABLE VARIABLE (positive values only 1-150)
+unsigned long CirculationActivationMinutes = 1; // ADJUSTABLE VARIABLE (positive values only 1-10000)
+unsigned long CirculationPauseMinutes = 5;     // ADJUSTABLE VARIABLE (positive values only 1-10000)
+float CleanerMillilitersPerActivation = 10.0; // ADJUSTABLE VARIABLE (positive values only 1-10000)
+unsigned long CleanerPauseHours = 30000;           // ADJUSTABLE VARIABLE (positive values only 1-10000)
+float TotalGallonsPerRefill = 5;  //ADJUSTABLE VARIABLE (positive values only 1-10000)
+float Peri1MillilitersPerGallon = 5;    // Nutrient A---ADJUSTABLE VARIABLE (positive values only 1-10000)
+float Peri2MillilitersPerGallon = 5;   // Nutrient B---ADJUSTABLE VARIABLE (positive values only 1-10000)
+float Peri3MillilitersPerGallon = 2.5;   // Acid---ADJUSTABLE VARIABLE (positive values only 1-10000)
+
+BLEServer* pServer = NULL;
+BLECharacteristic* pCharacteristic[NUM_CHARACTERISTICS] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+class MyServerCallbacks: public BLEServerCallbacks {
+    void onConnect(BLEServer* pServer) {
+      Serial.println("device connected");
+    };
+
+    void onDisconnect(BLEServer* pServer) {
+      Serial.println("device disconnected");
+      pServer->startAdvertising();
+    }
+};
+
+class MyCallbacks : public BLECharacteristicCallbacks {
+    void onWrite(BLECharacteristic *pCharacteristic) {
+      std::string value = pCharacteristic->getValue();
+      Serial.println("*********");
+        const char* buff = value.c_str();
+        float floatValue = std::atof(buff);
+        Serial.println(floatValue);
+   
+          //////////////////////
+
+          std::string characteristicUUID = pCharacteristic->getUUID().toString();
+if (characteristicUUID == CHARACTERISTICS[0]) {
+    Serial.println(floatValue);
+    MillilitersPerSecond = floatValue;
+} else if (characteristicUUID == CHARACTERISTICS[1]) {
+    Serial.println(floatValue);
+    LEDbrightness = floatValue;
+} else if (characteristicUUID == CHARACTERISTICS[2]) {
+    Serial.println(floatValue);
+    ReservoirDepth = floatValue;
+} else if (characteristicUUID == CHARACTERISTICS[3]) {
+    Serial.println(floatValue);
+    MinimumRefillDepth = floatValue;
+}
+else if (characteristicUUID == CHARACTERISTICS[4]) {
+    Serial.println(floatValue);
+    CirculationActivationMinutes = floatValue;
+}
+else if (characteristicUUID == CHARACTERISTICS[5]) {
+    Serial.println(floatValue);
+    CirculationPauseMinutes = floatValue;
+}
+
+else if (characteristicUUID == CHARACTERISTICS[6]) {
+    Serial.println(floatValue);
+    CleanerMillilitersPerActivation = floatValue;
+}
+
+else if (characteristicUUID == CHARACTERISTICS[7]) {
+    Serial.println(floatValue);
+    CleanerPauseHours = floatValue;
+}
+
+else if (characteristicUUID == CHARACTERISTICS[8]) {
+    Serial.println(floatValue);
+    TotalGallonsPerRefill = floatValue;
+}
+
+else if (characteristicUUID == CHARACTERISTICS[9]) {
+    Serial.println(floatValue);
+    Peri1MillilitersPerGallon = floatValue;
+}
+
+else if (characteristicUUID == CHARACTERISTICS[10]) {
+    Serial.println(floatValue);
+     Peri2MillilitersPerGallon = floatValue;
+}
+
+else if (characteristicUUID == CHARACTERISTICS[11]) {
+    Serial.println(floatValue);
+     Peri3MillilitersPerGallon = floatValue;
+}
+
+
+ else {
+    Serial.println("Unknown characteristic");
+}
+
+
+          ////////////////////
+      
+
+      Serial.println("*********");
+    }
+
+};
+
+
+
 
  //WATER LEVEL ULTRASONIC SENSOR AND LED INDICATOR
 #define PIN_LED     21    // Pin where your WS2812 LED Stick is connected
@@ -14,9 +144,7 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_PIXELS, PIN_LED, NEO_GRB + NEO_K
 
 long duration, distance;
 
-const int LEDbrightness = 30; //ADJUSTABLE VARIABLE (positive values only 0-30)
-const int ReservoirDepth = 25; //ADJUSTABLE VARIABLE (positive values only 1-150)
-const int MinimumRefillDepth = 23; //ADJUSTABLE VARIABLE (positive values only 1-150)
+
 
 //CIRCULATION
 const int CirculationPin = 13; 
@@ -24,8 +152,7 @@ const int CirculationPin = 13;
 //const unsigned long CirculationActivationTime = 300000; // ADJUSTABLE VARIABLE (positive values only 1-10000)
 //const unsigned long CirculationPauseTime = 60000;     // ADJUSTABLE VARIABLE (positive values only 1-10000)
 
-const unsigned long CirculationActivationMinutes = 1; // ADJUSTABLE VARIABLE (positive values only 1-10000)
-const unsigned long CirculationPauseMinutes = 5;     // ADJUSTABLE VARIABLE (positive values only 1-10000)
+
 
 const unsigned long CirculationActivationTime = CirculationActivationMinutes * 60000UL;
 const unsigned long CirculationPauseTime = CirculationPauseMinutes * 60000UL;
@@ -40,8 +167,7 @@ const int Peri4 = 25;  // Cleaner Peri (peri4)
 //const unsigned long CleanerActivationTime = 60000; //ADJUSTABLE VARIABLE (positive values only 1-10000)
 
 //const unsigned long CleanerActivationSeconds = 60;   // ADJUSTABLE VARIABLE (positive values only 1-10000)
-float CleanerMillilitersPerActivation = 10.0; // ADJUSTABLE VARIABLE (positive values only 1-10000)
-const unsigned long CleanerPauseHours = 30000;           // ADJUSTABLE VARIABLE (positive values only 1-10000)
+
 
 //const unsigned long CleanerActivationTime = CleanerActivationSeconds * 1000UL;
 const unsigned long CleanerPauseTime = CleanerPauseHours; //* 3600000UL;
@@ -57,11 +183,7 @@ const int Peri2 = 27; // Nutrient B (peri2)
 const int Peri3 = 26; // Acid (peri3) 
 const int RefillPin = 12; // Refill Pump
 
-const float TotalGallonsPerRefill = 5;  //ADJUSTABLE VARIABLE (positive values only 1-10000)
 
-const float Peri1MillilitersPerGallon = 5;    // Nutrient A---ADJUSTABLE VARIABLE (positive values only 1-10000)
-const float Peri2MillilitersPerGallon = 5;   // Nutrient B---ADJUSTABLE VARIABLE (positive values only 1-10000)
-const float Peri3MillilitersPerGallon = 2.5;   // Acid---ADJUSTABLE VARIABLE (positive values only 1-10000)
 
   // Calculate total volume of liquid per refill for each peri
   float Peri1VolumePerRefill = TotalGallonsPerRefill * Peri1MillilitersPerGallon;
@@ -98,7 +220,7 @@ const int serialPrintInterval = 2000; // Print every 2000 milliseconds
 
 void setup() {
   // Start serial communication turn off when not debugging !
-  //Serial.begin(115200);
+  Serial.begin(115200);
 
   strip.begin();
   strip.show();  // Initialize all pixels to 'off'
@@ -130,6 +252,40 @@ void setup() {
 
   // Enable the watchdog timer with a timeout of 4 seconds
   //esp_task_wdt_init(10, true);
+
+  // Initialize BLE
+  BLEDevice::init("Clark Garden");
+  pServer = BLEDevice::createServer();
+
+  pServer->setCallbacks(new MyServerCallbacks());
+
+  // Create the BLE Service
+  BLEService *pService = pServer->createService(BLEUUID(SERVICE_UUID), 36);
+
+  // Create the BLE Characteristics
+
+  for(int i=0;i<NUM_CHARACTERISTICS;i++)
+  {
+    pCharacteristic[i] = pService->createCharacteristic(
+                        CHARACTERISTICS[i],
+                        BLECharacteristic::PROPERTY_NOTIFY |
+                        BLECharacteristic::PROPERTY_WRITE |
+                        BLECharacteristic::PROPERTY_READ |
+                        BLECharacteristic::PROPERTY_INDICATE
+                      );
+  pCharacteristic[i]->setCallbacks(new MyCallbacks());
+  pCharacteristic[i]->addDescriptor(new BLE2902());
+  }
+
+ 
+
+  // Start the service
+  pService->start();
+
+  // Start advertising
+  BLEAdvertising *pAdvertising = pServer->getAdvertising();
+  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->start();
 
 }
 
@@ -284,6 +440,7 @@ if (distance < 4) {
   // Reset the watchdog timer to prevent a reset
   //esp_task_wdt_reset();
 }
+  
 
 // // Watchdog interrupt service routine
 // ISR(WDT_vect) {
