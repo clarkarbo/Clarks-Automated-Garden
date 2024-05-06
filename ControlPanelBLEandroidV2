@@ -1,0 +1,451 @@
+#include <Adafruit_NeoPixel.h>
+#include <esp_task_wdt.h>
+#include <BLEDevice.h>
+#include <BLEUtils.h>
+#include <BLEServer.h>
+#include <BLE2902.h>
+
+// BLE Service and Characteristic UUIDs
+#define SERVICE_UUID        "0000ffe0-0000-1000-8000-00805f9b34fb"
+
+#define NUM_CHARACTERISTICS 12
+
+const char* CHARACTERISTICS[NUM_CHARACTERISTICS] = {
+    "0000ffe1-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_MillilitersPerSecond
+    "0000ffe2-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_LEDbrightness
+    "0000ffe3-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_ReservoirDepth
+    "0000ffe4-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_MinimumRefillDepth
+    "0000ffe5-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_CirculationActivationMinutes
+    "0000ffe6-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_CirculationPauseMinutes
+    "0000ffe7-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_CleanerMillilitersPerActivation
+    "0000ffe8-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_CleanerPauseHours
+    "0000ffe9-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_TotalGallonsPerRefill
+    "0000ffea-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_Peri1MillilitersPerGallon
+    "0000ffeb-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_Peri2MillilitersPerGallon
+    "0000ffec-0000-1000-8000-00805f9b34fb"  // CHARACTERISTIC_Peri3MillilitersPerGallon
+};
+
+// Global variables
+float MillilitersPerSecond = 1.6; // ADJUSTABLE VARIABLE (positive values only 1-100)
+int LEDbrightness = 30; //ADJUSTABLE VARIABLE (positive values only 0-30)
+int ReservoirDepth = 25; //ADJUSTABLE VARIABLE (positive values only 1-150)
+int MinimumRefillDepth = 23; //ADJUSTABLE VARIABLE (positive values only 1-150)
+unsigned long CirculationActivationMinutes = 1; // ADJUSTABLE VARIABLE (positive values only 1-10000)
+unsigned long CirculationPauseMinutes = 5;     // ADJUSTABLE VARIABLE (positive values only 1-10000)
+float CleanerMillilitersPerActivation = 10.0; // ADJUSTABLE VARIABLE (positive values only 1-10000)
+unsigned long CleanerPauseHours = 1;           // ADJUSTABLE VARIABLE (positive values only 1-10000)
+float TotalGallonsPerRefill = 5;  //ADJUSTABLE VARIABLE (positive values only 1-10000)
+float Peri1MillilitersPerGallon = 5;    // Nutrient A---ADJUSTABLE VARIABLE (positive values only 1-10000)
+float Peri2MillilitersPerGallon = 5;   // Nutrient B---ADJUSTABLE VARIABLE (positive values only 1-10000)
+float Peri3MillilitersPerGallon = 2.5;   // Acid---ADJUSTABLE VARIABLE (positive values only 1-10000)
+
+BLEServer* pServer = NULL;
+BLECharacteristic* pCharacteristic[NUM_CHARACTERISTICS] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+class MyServerCallbacks: public BLEServerCallbacks {
+    void onConnect(BLEServer* pServer) {
+      Serial.println("device connected");
+    };
+
+    void onDisconnect(BLEServer* pServer) {
+      Serial.println("device disconnected");
+      pServer->startAdvertising();
+    }
+};
+
+class MyCallbacks : public BLECharacteristicCallbacks {
+    void onWrite(BLECharacteristic *pCharacteristic) {
+      std::string value = pCharacteristic->getValue();
+      Serial.println("*********");
+        const char* buff = value.c_str();
+        float floatValue = std::atof(buff);
+        Serial.println(floatValue);
+   
+          //////////////////////
+
+          std::string characteristicUUID = pCharacteristic->getUUID().toString();
+if (characteristicUUID == CHARACTERISTICS[0]) {
+    Serial.println(floatValue);
+    MillilitersPerSecond = floatValue;
+} else if (characteristicUUID == CHARACTERISTICS[1]) {
+    Serial.println(floatValue);
+    LEDbrightness = floatValue;
+} else if (characteristicUUID == CHARACTERISTICS[2]) {
+    Serial.println(floatValue);
+    ReservoirDepth = floatValue;
+} else if (characteristicUUID == CHARACTERISTICS[3]) {
+    Serial.println(floatValue);
+    MinimumRefillDepth = floatValue;
+}
+else if (characteristicUUID == CHARACTERISTICS[4]) {
+    Serial.println(floatValue);
+    CirculationActivationMinutes = floatValue;
+}
+else if (characteristicUUID == CHARACTERISTICS[5]) {
+    Serial.println(floatValue);
+    CirculationPauseMinutes = floatValue;
+}
+
+else if (characteristicUUID == CHARACTERISTICS[6]) {
+    Serial.println(floatValue);
+    CleanerMillilitersPerActivation = floatValue;
+}
+
+else if (characteristicUUID == CHARACTERISTICS[7]) {
+    Serial.println(floatValue);
+    CleanerPauseHours = floatValue;
+}
+
+else if (characteristicUUID == CHARACTERISTICS[8]) {
+    Serial.println(floatValue);
+    TotalGallonsPerRefill = floatValue;
+}
+
+else if (characteristicUUID == CHARACTERISTICS[9]) {
+    Serial.println(floatValue);
+    Peri1MillilitersPerGallon = floatValue;
+}
+
+else if (characteristicUUID == CHARACTERISTICS[10]) {
+    Serial.println(floatValue);
+     Peri2MillilitersPerGallon = floatValue;
+}
+
+else if (characteristicUUID == CHARACTERISTICS[11]) {
+    Serial.println(floatValue);
+     Peri3MillilitersPerGallon = floatValue;
+}
+
+
+ else {
+    Serial.println("Unknown characteristic");
+}
+
+
+          ////////////////////
+      
+
+      Serial.println("*********");
+    }
+
+};
+
+
+
+
+ //WATER LEVEL ULTRASONIC SENSOR AND LED INDICATOR
+#define PIN_LED     21    // Pin where your WS2812 LED Stick is connected
+#define NUM_PIXELS  10   // Number of pixels in your LED Stick
+
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_PIXELS, PIN_LED, NEO_GRB + NEO_KHZ800);
+
+#define TRIGGER_PIN 23    // Pin connected to the trigger of the ultrasonic sensor
+#define ECHO_PIN    22    // Pin connected to the echo of the ultrasonic sensor
+
+long duration, distance;
+
+
+
+//CIRCULATION
+const int CirculationPin = 13; 
+
+int CirculationStartUpState = HIGH; // Initial state (relay off)
+unsigned long CirculationStartTime = 0;
+
+// CLEANER 
+const int Peri4 = 25;  // Cleaner Peri (peri4) 
+
+//const unsigned long CleanerActivationTime = CleanerActivationSeconds * 1000UL;
+
+
+int Peri4StartUpState = LOW; // Initial state (relay off)
+unsigned long Peri4StartTime = 0;
+
+// REFILL AND DOSING  
+bool pumpRunning = false;
+const int Peri1 = 14; // Nutrient A (peri1)
+const int Peri2 = 27; // Nutrient B (peri2)
+const int Peri3 = 26; // Acid (peri3) 
+const int RefillPin = 12; // Refill Pump
+
+unsigned long Peri1StartTime = 0;
+unsigned long Peri2StartTime = 0;
+unsigned long Peri3StartTime = 0;
+
+//FLOAT SENSORS   
+const int analogPin1 = 34;
+const int analogPin2 = 35;
+
+// Define the duration for calculating average (in milliseconds)
+const int averageDuration = 500;
+
+// Define low and high thresholds for float sensors 
+const int LOW_THRESHOLD = 1;  
+const int HIGH_THRESHOLD = 10; 
+
+// Variables for average sensor values
+int averageValue1 = 0;
+int averageValue2 = 0;
+
+unsigned long lastSerialPrintTime = 0;
+const int serialPrintInterval = 2000; // Print every 2000 milliseconds
+
+
+void setup() {
+  // Start serial communication turn off when not debugging !
+  Serial.begin(115200);
+
+  strip.begin();
+  strip.show();  // Initialize all pixels to 'off'
+
+  pinMode(TRIGGER_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+
+  pinMode(CirculationPin, OUTPUT);
+  digitalWrite(CirculationPin, CirculationStartUpState);
+
+  digitalWrite(Peri4, Peri4StartUpState);
+  pinMode(Peri4, OUTPUT);
+
+  // Set relay pins as output
+  pinMode(Peri1, OUTPUT);
+  pinMode(Peri2, OUTPUT);
+  pinMode(Peri3, OUTPUT);
+  pinMode(RefillPin, OUTPUT);
+
+  // Initialize refill relay pins
+  digitalWrite(Peri1, LOW);
+  digitalWrite(Peri2, LOW);
+  digitalWrite(Peri3, LOW);
+  digitalWrite(RefillPin, LOW);
+  
+  // Set the analog pins as input
+  pinMode(analogPin1, INPUT);
+  pinMode(analogPin2, INPUT);
+
+  // Enable the watchdog timer with a timeout of 4 seconds
+  //esp_task_wdt_init(10, true);
+
+  // Initialize BLE
+  BLEDevice::init("Clark Garden");
+  pServer = BLEDevice::createServer();
+
+  pServer->setCallbacks(new MyServerCallbacks());
+
+  // Create the BLE Service
+  BLEService *pService = pServer->createService(BLEUUID(SERVICE_UUID), 36);
+
+  // Create the BLE Characteristics
+
+  for(int i=0;i<NUM_CHARACTERISTICS;i++)
+  {
+    pCharacteristic[i] = pService->createCharacteristic(
+                        CHARACTERISTICS[i],
+                        BLECharacteristic::PROPERTY_NOTIFY |
+                        BLECharacteristic::PROPERTY_WRITE |
+                        BLECharacteristic::PROPERTY_READ |
+                        BLECharacteristic::PROPERTY_INDICATE
+                      );
+  pCharacteristic[i]->setCallbacks(new MyCallbacks());
+  pCharacteristic[i]->addDescriptor(new BLE2902());
+  }
+
+ 
+
+  // Start the service
+  pService->start();
+
+  // Start advertising
+  BLEAdvertising *pAdvertising = pServer->getAdvertising();
+  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->start();
+
+}
+
+void loop() {
+
+const unsigned long CirculationActivationTime = CirculationActivationMinutes * 60000UL;
+const unsigned long CirculationPauseTime = CirculationPauseMinutes * 60000UL;
+
+const unsigned long CleanerPauseTime = CleanerPauseHours * 3600000UL;
+const unsigned long CleanerActivationTime = (CleanerMillilitersPerActivation / MillilitersPerSecond) * 1000; // Convert seconds to milliseconds
+
+// Calculate total volume of liquid per refill for each peri
+  float Peri1VolumePerRefill = TotalGallonsPerRefill * Peri1MillilitersPerGallon;
+  float Peri2VolumePerRefill = TotalGallonsPerRefill * Peri2MillilitersPerGallon;
+  float Peri3VolumePerRefill = TotalGallonsPerRefill * Peri3MillilitersPerGallon;
+
+// Calculate duration to run each peri based on ml per second
+  unsigned long Peri1Duration = (Peri1VolumePerRefill / MillilitersPerSecond) * 1000; // Convert seconds to milliseconds
+  unsigned long Peri2Duration = (Peri2VolumePerRefill / MillilitersPerSecond) * 1000;
+  unsigned long Peri3Duration = (Peri3VolumePerRefill / MillilitersPerSecond) * 1000;
+
+
+
+
+
+  unsigned long currentTime = millis();
+
+  //WATER LEVEL ULTRASONIC SENSOR AND LED INDICATOR
+  // Trigger ultrasonic sensor
+  digitalWrite(TRIGGER_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIGGER_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIGGER_PIN, LOW);
+
+  // Read the echo pulse
+  duration = pulseIn(ECHO_PIN, HIGH);
+
+  // Calculate distance in cm
+  distance = duration * 0.034 / 2;
+
+  // Output distance to Serial monitor
+  Serial.print("Distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+
+  // Calculate current water level percentage
+  int currentWaterLevel = map(distance, ReservoirDepth, 0, 0, 100);  // Inverted mapping to percentage
+
+  // Output current water level percentage to Serial monitor
+  Serial.print("Current Water Level (%): ");
+  Serial.println(currentWaterLevel);
+
+if (distance < 4) {
+  strip.fill(strip.Color(255, 0, 0), 0, NUM_PIXELS);  // Red color for all LEDs
+} else {
+  int numLEDs = map(distance, 0, ReservoirDepth, NUM_PIXELS, 0);  //ADJUSTABLE VARIABLE Reservoir depth  (positive values only 5-135)
+  strip.fill(strip.Color(0, 0, LEDbrightness), 0, numLEDs);  // Blue color at half brightness                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+
+  // Turn off the remaining LEDs
+  for (int i = numLEDs; i < NUM_PIXELS; i++) {
+    strip.setPixelColor(i, strip.Color(0, 0, 0));  // Turn off
+  }
+}
+
+  strip.show();
+  // delay(100);  // Adjust the delay based on your needs
+
+  // //CIRCULATION PUMP 
+    if (CirculationStartUpState == HIGH && currentTime - CirculationStartTime >= CirculationActivationTime) {
+    // Switch the relay state to ON
+    CirculationStartUpState = LOW;
+    CirculationStartTime = currentTime;
+    digitalWrite(CirculationPin, CirculationStartUpState);
+  } else if (CirculationStartUpState == LOW && currentTime - CirculationStartTime >= CirculationPauseTime) {
+    // Switch the relay state to OFF
+    CirculationStartUpState = HIGH;
+    CirculationStartTime = currentTime;
+    digitalWrite(CirculationPin, CirculationStartUpState);
+  }
+  
+  // //CLEANER PERI 
+    if (Peri4StartUpState == HIGH && currentTime - Peri4StartTime >= CleanerActivationTime) {
+    // Switch the relay state to ON
+    Peri4StartUpState = LOW;
+    Peri4StartTime = currentTime;
+    digitalWrite(Peri4, Peri4StartUpState);
+  } else if (Peri4StartUpState == LOW && currentTime - Peri4StartTime >= CleanerPauseTime) {
+    // Switch the relay state to OFF
+    Peri4StartUpState = HIGH;
+    Peri4StartTime = currentTime;
+    digitalWrite(Peri4, Peri4StartUpState);
+  }
+
+  //REFILL AND DOSING
+  // Variables to store accumulated values and count
+  long accumulatedValue1 = 0;
+  long accumulatedValue2 = 0;
+  int count = 0;
+
+  // Record start time
+  unsigned long startTime = millis();
+
+  // Read the analog input values and accumulate them
+  while (millis() - startTime < averageDuration) {
+    accumulatedValue1 += analogRead(analogPin1);
+    accumulatedValue2 += analogRead(analogPin2);
+    count++;
+    // Small delay to avoid overwhelming the CPU
+    delay(1);
+  }
+
+  // Calculate average values
+  averageValue1 = accumulatedValue1 / count;
+  averageValue2 = accumulatedValue2 / count;
+
+  // Print the average values to the Serial Monitor
+  Serial.print("Average Analog Pin A0: ");
+  Serial.println(averageValue1);
+  Serial.print("Average Analog Pin A1: ");
+  Serial.println(averageValue2);
+
+  // Dosing Activation logic using lowSensor 
+  if (averageValue1 < LOW_THRESHOLD && averageValue2 < LOW_THRESHOLD && !pumpRunning && distance < MinimumRefillDepth) {
+    Serial.println("Low water level detected. Starting pumps...");
+
+    // Activate relays for set durations (besides relay 7 which turns off via highSensor)
+    digitalWrite(RefillPin, HIGH);
+    Peri1StartTime = millis();
+    Peri2StartTime = millis();
+    Peri3StartTime = millis();
+
+    // Flag that at least one pump is running
+    pumpRunning = true;
+  }
+
+
+  // Refill Pump Deactivation logic using highSensor
+  if (averageValue1 > HIGH_THRESHOLD && averageValue2 > HIGH_THRESHOLD && pumpRunning) {
+    Serial.println("High water level detected. Pump off. ");
+
+    // Stop Refill pump
+    digitalWrite(RefillPin, LOW);
+
+    // Reset the pumpRunning flag
+    pumpRunning = false;
+  }
+
+  // Control Peri1
+  if (pumpRunning && millis() - Peri1StartTime < Peri1Duration) {
+    digitalWrite(Peri1, HIGH);
+  } else {
+    digitalWrite(Peri1, LOW);
+  }
+
+  // Control Peri2
+  if (pumpRunning && millis() - Peri2StartTime < Peri2Duration) {
+    digitalWrite(Peri2, HIGH);
+  } else {
+    digitalWrite(Peri2, LOW);
+  }
+
+  // Control Peri3
+  if (pumpRunning && millis() - Peri3StartTime < Peri3Duration) {
+    digitalWrite(Peri3, HIGH);
+  } else {
+    digitalWrite(Peri3, LOW);
+  }
+
+  // Periodic Serial print for pumpRunning variable
+  if (millis() - lastSerialPrintTime >= serialPrintInterval) {
+    Serial.print("pumpRunning status: ");
+    Serial.println(pumpRunning ? "Running" : "Not Running");
+    lastSerialPrintTime = millis();
+  }
+
+  // Reset the watchdog timer to prevent a reset
+  //esp_task_wdt_reset();
+}
+  
+
+// // Watchdog interrupt service routine
+// ISR(WDT_vect) {
+//   // This ISR is executed when the watchdog timer overflows
+//   // You can add any cleanup code here before the reset, if needed
+//   // Uncomment the following line if you want to see a message in the Serial Monitor before the reset
+//   // Serial.println("Watchdog reset!");
+//   // Reset the Arduino
+//   asm volatile ("  jmp 0");
+// }  `
