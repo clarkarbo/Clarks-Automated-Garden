@@ -41,10 +41,10 @@ const int Peri4 = 25;  // Cleaner Peri (peri4)
 
 //const unsigned long CleanerActivationSeconds = 60;   // ADJUSTABLE VARIABLE (positive values only 1-10000)
 float CleanerMillilitersPerActivation = 10.0; // ADJUSTABLE VARIABLE (positive values only 1-10000)
-const unsigned long CleanerPauseHours = 30000;           // ADJUSTABLE VARIABLE (positive values only 1-10000)
+const unsigned long CleanerPauseHours = 24;           // ADJUSTABLE VARIABLE (positive values only 1-10000)
 
 //const unsigned long CleanerActivationTime = CleanerActivationSeconds * 1000UL;
-const unsigned long CleanerPauseTime = CleanerPauseHours; //* 3600000UL;
+const unsigned long CleanerPauseTime = CleanerPauseHours * 3600000UL;
 const unsigned long CleanerActivationTime = (CleanerMillilitersPerActivation / MillilitersPerSecond) * 1000; // Convert seconds to milliseconds
 
 int Peri4StartUpState = LOW; // Initial state (relay off)
@@ -57,11 +57,11 @@ const int Peri2 = 27; // Nutrient B (peri2)
 const int Peri3 = 26; // Acid (peri3) 
 const int RefillPin = 12; // Refill Pump
 
-const float TotalGallonsPerRefill = 5;  //ADJUSTABLE VARIABLE (positive values only 1-10000)
+const float TotalGallonsPerRefill = 2.5;  //ADJUSTABLE VARIABLE (positive values only 1-10000)
 
-const float Peri1MillilitersPerGallon = 5;    // Nutrient A---ADJUSTABLE VARIABLE (positive values only 1-10000)
-const float Peri2MillilitersPerGallon = 5;   // Nutrient B---ADJUSTABLE VARIABLE (positive values only 1-10000)
-const float Peri3MillilitersPerGallon = 2.5;   // Acid---ADJUSTABLE VARIABLE (positive values only 1-10000)
+const float Peri1MillilitersPerGallon = 6;    // Nutrient A---ADJUSTABLE VARIABLE (positive values only 1-10000)
+const float Peri2MillilitersPerGallon = 6;   // Nutrient B---ADJUSTABLE VARIABLE (positive values only 1-10000)
+const float Peri3MillilitersPerGallon = 1.5;   // Acid---ADJUSTABLE VARIABLE (positive values only 1-10000)
 
   // Calculate total volume of liquid per refill for each peri
   float Peri1VolumePerRefill = TotalGallonsPerRefill * Peri1MillilitersPerGallon;
