@@ -19,10 +19,7 @@ const int ReservoirDepth = 25; //ADJUSTABLE VARIABLE (positive values only 1-150
 const int MinimumRefillDepth = 23; //ADJUSTABLE VARIABLE (positive values only 1-150)
 
 //CIRCULATION
-const int CirculationPin = 13; 
-
-//const unsigned long CirculationActivationTime = 300000; // ADJUSTABLE VARIABLE (positive values only 1-10000)
-//const unsigned long CirculationPauseTime = 60000;     // ADJUSTABLE VARIABLE (positive values only 1-10000)
+const int CirculationPin = 13;
 
 const unsigned long CirculationActivationMinutes = 1; // ADJUSTABLE VARIABLE (positive values only 1-10000)
 const unsigned long CirculationPauseMinutes = 5;     // ADJUSTABLE VARIABLE (positive values only 1-10000)
@@ -36,14 +33,10 @@ unsigned long CirculationStartTime = 0;
 // CLEANER 
 const int Peri4 = 25;  // Cleaner Peri (peri4) 
 
-//const unsigned long CleanerPauseTime = 10000;      //ADJUSTABLE VARIABLE (positive values only 1-10000)
-//const unsigned long CleanerActivationTime = 60000; //ADJUSTABLE VARIABLE (positive values only 1-10000)
 
-//const unsigned long CleanerActivationSeconds = 60;   // ADJUSTABLE VARIABLE (positive values only 1-10000)
 float CleanerMillilitersPerActivation = 10.0; // ADJUSTABLE VARIABLE (positive values only 1-10000)
 const unsigned long CleanerPauseHours = 24;           // ADJUSTABLE VARIABLE (positive values only 1-10000)
 
-//const unsigned long CleanerActivationTime = CleanerActivationSeconds * 1000UL;
 const unsigned long CleanerPauseTime = CleanerPauseHours * 3600000UL;
 const unsigned long CleanerActivationTime = (CleanerMillilitersPerActivation / MillilitersPerSecond) * 1000; // Convert seconds to milliseconds
 
@@ -155,9 +148,6 @@ void loop() {
   Serial.print(distance);
   Serial.println(" cm");
 
-  // Serial.print("Relay: ");
-  // Serial.println(currentCirculationRelay);
-
 if (distance < 4) {
   strip.fill(strip.Color(255, 0, 0), 0, NUM_PIXELS);  // Red color for all LEDs
 } else {
@@ -171,7 +161,6 @@ if (distance < 4) {
 }
 
   strip.show();
-  // delay(100);  // Adjust the delay based on your needs
 
   // //CIRCULATION PUMP 
     if (CirculationStartUpState == HIGH && currentTime - CirculationStartTime >= CirculationActivationTime) {
