@@ -8,7 +8,7 @@
 // BLE Service and Characteristic UUIDs
 #define SERVICE_UUID        "0000ffe0-0000-1000-8000-00805f9b34fb"
 
-#define NUM_CHARACTERISTICS 12
+#define NUM_CHARACTERISTICS 13
 
 const char* CHARACTERISTICS[NUM_CHARACTERISTICS] = {
     "0000ffe1-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_MillilitersPerSecond
@@ -22,9 +22,9 @@ const char* CHARACTERISTICS[NUM_CHARACTERISTICS] = {
     "0000ffe9-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_TotalGallonsPerRefill
     "0000ffea-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_Peri1MillilitersPerGallon
     "0000ffeb-0000-1000-8000-00805f9b34fb", // CHARACTERISTIC_Peri2MillilitersPerGallon
-    "0000ffec-0000-1000-8000-00805f9b34fb"  // CHARACTERISTIC_Peri3MillilitersPerGallon
+    "0000ffec-0000-1000-8000-00805f9b34fb",  // CHARACTERISTIC_Peri3MillilitersPerGallon
+    "0000ffed-0000-1000-8000-00805f9b34fb"  // CHARACTERISTIC_cm_percentage
 };
-
 // Global variables
 float MillilitersPerSecond = 1.6; // ADJUSTABLE VARIABLE (positive values only 1-100)
 int LEDbrightness = 30; //ADJUSTABLE VARIABLE (positive values only 0-30)
@@ -40,7 +40,7 @@ float Peri2MillilitersPerGallon = 5;   // Nutrient B---ADJUSTABLE VARIABLE (posi
 float Peri3MillilitersPerGallon = 2.5;   // Acid---ADJUSTABLE VARIABLE (positive values only 1-10000)
 
 BLEServer* pServer = NULL;
-BLECharacteristic* pCharacteristic[NUM_CHARACTERISTICS] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+BLECharacteristic* pCharacteristic[NUM_CHARACTERISTICS] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 class MyServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
@@ -233,7 +233,7 @@ void setup() {
   pServer->setCallbacks(new MyServerCallbacks());
 
   // Create the BLE Service
-  BLEService *pService = pServer->createService(BLEUUID(SERVICE_UUID), 36);
+  BLEService *pService = pServer->createService(BLEUUID(SERVICE_UUID), 42);
 
   // Create the BLE Characteristics
 
@@ -311,6 +311,10 @@ const unsigned long CleanerActivationTime = (CleanerMillilitersPerActivation / M
   // Output current water level percentage to Serial monitor
   Serial.print("Current Water Level (%): ");
   Serial.println(currentWaterLevel);
+
+    String dataToSend = String(distance) + "," + String(currentWaterLevel);
+  pCharacteristic[12]->setValue(dataToSend.c_str());
+  pCharacteristic[12]->notify();
 
 if (distance < 4) {
   strip.fill(strip.Color(255, 0, 0), 0, NUM_PIXELS);  // Red color for all LEDs
