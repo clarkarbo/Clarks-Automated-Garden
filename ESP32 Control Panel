@@ -33,7 +33,7 @@ int MinimumRefillDepth = 23; //ADJUSTABLE VARIABLE (positive values only 1-150)
 unsigned long CirculationActivationMinutes = 1; // ADJUSTABLE VARIABLE (positive values only 1-10000)
 unsigned long CirculationPauseMinutes = 5;     // ADJUSTABLE VARIABLE (positive values only 1-10000)
 float CleanerMillilitersPerActivation = 10.0; // ADJUSTABLE VARIABLE (positive values only 1-10000)
-unsigned long CleanerPauseHours = 30000;           // ADJUSTABLE VARIABLE (positive values only 1-10000)
+unsigned long CleanerPauseHours = 1;           // ADJUSTABLE VARIABLE (positive values only 1-10000)
 float TotalGallonsPerRefill = 5;  //ADJUSTABLE VARIABLE (positive values only 1-10000)
 float Peri1MillilitersPerGallon = 5;    // Nutrient A---ADJUSTABLE VARIABLE (positive values only 1-10000)
 float Peri2MillilitersPerGallon = 5;   // Nutrient B---ADJUSTABLE VARIABLE (positive values only 1-10000)
@@ -149,29 +149,14 @@ long duration, distance;
 //CIRCULATION
 const int CirculationPin = 13; 
 
-//const unsigned long CirculationActivationTime = 300000; // ADJUSTABLE VARIABLE (positive values only 1-10000)
-//const unsigned long CirculationPauseTime = 60000;     // ADJUSTABLE VARIABLE (positive values only 1-10000)
-
-
-
-const unsigned long CirculationActivationTime = CirculationActivationMinutes * 60000UL;
-const unsigned long CirculationPauseTime = CirculationPauseMinutes * 60000UL;
-
 int CirculationStartUpState = HIGH; // Initial state (relay off)
 unsigned long CirculationStartTime = 0;
 
 // CLEANER 
 const int Peri4 = 25;  // Cleaner Peri (peri4) 
 
-//const unsigned long CleanerPauseTime = 10000;      //ADJUSTABLE VARIABLE (positive values only 1-10000)
-//const unsigned long CleanerActivationTime = 60000; //ADJUSTABLE VARIABLE (positive values only 1-10000)
-
-//const unsigned long CleanerActivationSeconds = 60;   // ADJUSTABLE VARIABLE (positive values only 1-10000)
-
-
 //const unsigned long CleanerActivationTime = CleanerActivationSeconds * 1000UL;
-const unsigned long CleanerPauseTime = CleanerPauseHours; //* 3600000UL;
-const unsigned long CleanerActivationTime = (CleanerMillilitersPerActivation / MillilitersPerSecond) * 1000; // Convert seconds to milliseconds
+
 
 int Peri4StartUpState = LOW; // Initial state (relay off)
 unsigned long Peri4StartTime = 0;
@@ -182,18 +167,6 @@ const int Peri1 = 14; // Nutrient A (peri1)
 const int Peri2 = 27; // Nutrient B (peri2)
 const int Peri3 = 26; // Acid (peri3) 
 const int RefillPin = 12; // Refill Pump
-
-
-
-  // Calculate total volume of liquid per refill for each peri
-  float Peri1VolumePerRefill = TotalGallonsPerRefill * Peri1MillilitersPerGallon;
-  float Peri2VolumePerRefill = TotalGallonsPerRefill * Peri2MillilitersPerGallon;
-  float Peri3VolumePerRefill = TotalGallonsPerRefill * Peri3MillilitersPerGallon;
-
-  // Calculate duration to run each peri based on ml per second
-  unsigned long Peri1Duration = (Peri1VolumePerRefill / MillilitersPerSecond) * 1000; // Convert seconds to milliseconds
-  unsigned long Peri2Duration = (Peri2VolumePerRefill / MillilitersPerSecond) * 1000;
-  unsigned long Peri3Duration = (Peri3VolumePerRefill / MillilitersPerSecond) * 1000;
 
 unsigned long Peri1StartTime = 0;
 unsigned long Peri2StartTime = 0;
@@ -290,6 +263,27 @@ void setup() {
 }
 
 void loop() {
+
+const unsigned long CirculationActivationTime = CirculationActivationMinutes * 60000UL;
+const unsigned long CirculationPauseTime = CirculationPauseMinutes * 60000UL;
+
+const unsigned long CleanerPauseTime = CleanerPauseHours * 3600000UL;
+const unsigned long CleanerActivationTime = (CleanerMillilitersPerActivation / MillilitersPerSecond) * 1000; // Convert seconds to milliseconds
+
+// Calculate total volume of liquid per refill for each peri
+  float Peri1VolumePerRefill = TotalGallonsPerRefill * Peri1MillilitersPerGallon;
+  float Peri2VolumePerRefill = TotalGallonsPerRefill * Peri2MillilitersPerGallon;
+  float Peri3VolumePerRefill = TotalGallonsPerRefill * Peri3MillilitersPerGallon;
+
+// Calculate duration to run each peri based on ml per second
+  unsigned long Peri1Duration = (Peri1VolumePerRefill / MillilitersPerSecond) * 1000; // Convert seconds to milliseconds
+  unsigned long Peri2Duration = (Peri2VolumePerRefill / MillilitersPerSecond) * 1000;
+  unsigned long Peri3Duration = (Peri3VolumePerRefill / MillilitersPerSecond) * 1000;
+
+
+
+
+
   unsigned long currentTime = millis();
 
   //WATER LEVEL ULTRASONIC SENSOR AND LED INDICATOR
@@ -311,8 +305,12 @@ void loop() {
   Serial.print(distance);
   Serial.println(" cm");
 
-  // Serial.print("Relay: ");
-  // Serial.println(currentCirculationRelay);
+  // Calculate current water level percentage
+  int currentWaterLevel = map(distance, ReservoirDepth, 0, 0, 100);  // Inverted mapping to percentage
+
+  // Output current water level percentage to Serial monitor
+  Serial.print("Current Water Level (%): ");
+  Serial.println(currentWaterLevel);
 
 if (distance < 4) {
   strip.fill(strip.Color(255, 0, 0), 0, NUM_PIXELS);  // Red color for all LEDs
