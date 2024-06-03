@@ -41,7 +41,7 @@ unsigned long CleanerPauseHours = 1;             // ADJUSTABLE VARIABLE (positiv
 float TotalGallonsPerRefill = 5;                 //ADJUSTABLE VARIABLE (positive values only 1-10000)
 float Peri1MillilitersPerGallon = 5;             // Nutrient A---ADJUSTABLE VARIABLE (positive values only 1-10000)
 float Peri2MillilitersPerGallon = 5;             // Nutrient B---ADJUSTABLE VARIABLE (positive values only 1-10000)
-float Peri3MillilitersPerGallon = 2.5;           // Acid---ADJUSTABLE VARIABLE (positive values only 1-10000)
+float Peri3MillilitersPerGallon = 2;           // Acid---ADJUSTABLE VARIABLE (positive values only 1-10000)
 
 BLEServer* pServer = NULL;
 BLECharacteristic* pCharacteristic[NUM_CHARACTERISTICS] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
