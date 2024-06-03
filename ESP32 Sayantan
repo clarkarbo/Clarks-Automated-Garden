@@ -28,6 +28,7 @@ const char* CHARACTERISTICS[NUM_CHARACTERISTICS] = {
   "0000ffec-0000-1000-8000-00805f9b34fb",  // CHARACTERISTIC_Peri3MillilitersPerGallon
   "0000ffed-0000-1000-8000-00805f9b34fb"   // CHARACTERISTIC_cm_percentage
 };
+
 // Global variables
 float MillilitersPerSecond = 1.6;                // ADJUSTABLE VARIABLE (positive values only 1-100)
 int LEDbrightness = 30;                          //ADJUSTABLE VARIABLE (positive values only 0-30)
@@ -70,61 +71,74 @@ class MyCallbacks : public BLECharacteristicCallbacks {
     if (characteristicUUID == CHARACTERISTICS[0]) {
       Serial.println(floatValue);
       MillilitersPerSecond = floatValue;
-
       preferences.putFloat("MlPS", MillilitersPerSecond);
-      Serial.print("Updated MillilitersPerSecond:");
-      Serial.println(MillilitersPerSecond);
+    }
 
-      // Close the Preferences
-      preferences.end();
-
-    } else if (characteristicUUID == CHARACTERISTICS[1]) {
+    else if (characteristicUUID == CHARACTERISTICS[1]) {
       Serial.println(floatValue);
       LEDbrightness = floatValue;
-    } else if (characteristicUUID == CHARACTERISTICS[2]) {
+      preferences.putFloat("ledBright", LEDbrightness);
+    }
+
+    else if (characteristicUUID == CHARACTERISTICS[2]) {
       Serial.println(floatValue);
       ReservoirDepth = floatValue;
-    } else if (characteristicUUID == CHARACTERISTICS[3]) {
+      preferences.putFloat("resDepth", ReservoirDepth);
+    }
+
+    else if (characteristicUUID == CHARACTERISTICS[3]) {
       Serial.println(floatValue);
       MinimumRefillDepth = floatValue;
-    } else if (characteristicUUID == CHARACTERISTICS[4]) {
+      preferences.putFloat("minRefillDepth", MinimumRefillDepth);
+    }
+
+    else if (characteristicUUID == CHARACTERISTICS[4]) {
       Serial.println(floatValue);
       CirculationActivationMinutes = floatValue;
-    } else if (characteristicUUID == CHARACTERISTICS[5]) {
+      preferences.putFloat("cirActMin", CirculationActivationMinutes);
+    }
+
+    else if (characteristicUUID == CHARACTERISTICS[5]) {
       Serial.println(floatValue);
       CirculationPauseMinutes = floatValue;
+      preferences.putFloat("cirPauMin", CirculationPauseMinutes);
     }
 
     else if (characteristicUUID == CHARACTERISTICS[6]) {
       Serial.println(floatValue);
       CleanerMillilitersPerActivation = floatValue;
+      preferences.putFloat("cleMilAct", CleanerMillilitersPerActivation);
     }
 
     else if (characteristicUUID == CHARACTERISTICS[7]) {
       Serial.println(floatValue);
       CleanerPauseHours = floatValue;
+      preferences.putFloat("ClePauHr", CleanerPauseHours);
     }
 
     else if (characteristicUUID == CHARACTERISTICS[8]) {
       Serial.println(floatValue);
       TotalGallonsPerRefill = floatValue;
+      preferences.putFloat("galpRef", TotalGallonsPerRefill);
     }
 
     else if (characteristicUUID == CHARACTERISTICS[9]) {
       Serial.println(floatValue);
       Peri1MillilitersPerGallon = floatValue;
+      preferences.putFloat("P1MPG", Peri1MillilitersPerGallon);
     }
 
     else if (characteristicUUID == CHARACTERISTICS[10]) {
       Serial.println(floatValue);
       Peri2MillilitersPerGallon = floatValue;
+      preferences.putFloat("P2MPG", Peri2MillilitersPerGallon);
     }
 
     else if (characteristicUUID == CHARACTERISTICS[11]) {
       Serial.println(floatValue);
       Peri3MillilitersPerGallon = floatValue;
+      preferences.putFloat("P3MPG", Peri3MillilitersPerGallon);
     }
-
 
     else {
       Serial.println("Unknown characteristic");
@@ -206,11 +220,23 @@ void setup() {
   // Or remove the counter key only
   //preferences.remove("MlPS");
 
-  // Get the key value, if the key does not exist, return a default value of 0
+  // Close the Preferences
+  //preferences.end();
+
+  // Get the key value, if the key does not exist, return a default value 
   // Note: Key name is limited to 15 chars.
   MillilitersPerSecond = preferences.getFloat("MlPS", MillilitersPerSecond);
-  Serial.print("Current MillilitersPerSecond:");
-  Serial.println(MillilitersPerSecond);
+  LEDbrightness = preferences.getFloat("ledBright", LEDbrightness);
+  ReservoirDepth = preferences.getFloat("resDepth", ReservoirDepth);
+  MinimumRefillDepth = preferences.getFloat("minRefillDepth", MinimumRefillDepth);
+  CirculationActivationMinutes = preferences.getFloat("cirActMin", CirculationActivationMinutes);
+  CirculationPauseMinutes = preferences.getFloat("cirPauMin", CirculationPauseMinutes);
+  CleanerMillilitersPerActivation = preferences.getFloat("cleMilAct", CleanerMillilitersPerActivation);
+  CleanerPauseHours = preferences.getFloat("ClePauHr", CleanerPauseHours);
+  TotalGallonsPerRefill = preferences.getFloat("galpRef", TotalGallonsPerRefill);
+  Peri1MillilitersPerGallon = preferences.getFloat("P1MPG", Peri1MillilitersPerGallon);
+  Peri2MillilitersPerGallon = preferences.getFloat("P2MPG", Peri2MillilitersPerGallon);
+  Peri3MillilitersPerGallon = preferences.getFloat("P3MPG", Peri3MillilitersPerGallon);
 
   strip.begin();
   strip.show();  // Initialize all pixels to 'off'
@@ -273,7 +299,6 @@ void setup() {
 }
 
 void loop() {
-
   const unsigned long CirculationActivationTime = CirculationActivationMinutes * 60000UL;
   const unsigned long CirculationPauseTime = CirculationPauseMinutes * 60000UL;
 
