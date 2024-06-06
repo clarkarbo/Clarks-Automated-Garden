@@ -54,7 +54,7 @@ const float TotalGallonsPerRefill = 2.5;  //ADJUSTABLE VARIABLE (positive values
 
 const float Peri1MillilitersPerGallon = 6;    // Nutrient A---ADJUSTABLE VARIABLE (positive values only 1-10000)
 const float Peri2MillilitersPerGallon = 6;   // Nutrient B---ADJUSTABLE VARIABLE (positive values only 1-10000)
-const float Peri3MillilitersPerGallon = 1.5;   // Acid---ADJUSTABLE VARIABLE (positive values only 1-10000)
+const float Peri3MillilitersPerGallon = 1.0;   // Acid---ADJUSTABLE VARIABLE (positive values only 1-10000)
 
   // Calculate total volume of liquid per refill for each peri
   float Peri1VolumePerRefill = TotalGallonsPerRefill * Peri1MillilitersPerGallon;
