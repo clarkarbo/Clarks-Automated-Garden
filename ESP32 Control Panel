@@ -27,7 +27,7 @@ const unsigned long CirculationPauseMinutes = 5;     // ADJUSTABLE VARIABLE (pos
 const unsigned long CirculationActivationTime = CirculationActivationMinutes * 60000UL;
 const unsigned long CirculationPauseTime = CirculationPauseMinutes * 60000UL;
 
-int CirculationStartUpState = HIGH; // Initial state (relay off)
+int CirculationStartUpState = LOW; // Initial state (relay off)
 unsigned long CirculationStartTime = 0;
 
 // CLEANER 
