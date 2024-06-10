@@ -22,7 +22,7 @@ const int MinimumRefillDepth = 23; //ADJUSTABLE VARIABLE (positive values only 1
 const int CirculationPin = 13;
 
 const unsigned long CirculationActivationMinutes = 1; // ADJUSTABLE VARIABLE (positive values only 1-10000)
-const unsigned long CirculationPauseMinutes = 5;     // ADJUSTABLE VARIABLE (positive values only 1-10000)
+const unsigned long CirculationPauseMinutes = 10;     // ADJUSTABLE VARIABLE (positive values only 1-10000)
 
 const unsigned long CirculationActivationTime = CirculationActivationMinutes * 60000UL;
 const unsigned long CirculationPauseTime = CirculationPauseMinutes * 60000UL;
@@ -54,7 +54,7 @@ const float TotalGallonsPerRefill = 2.5;  //ADJUSTABLE VARIABLE (positive values
 
 const float Peri1MillilitersPerGallon = 6;    // Nutrient A---ADJUSTABLE VARIABLE (positive values only 1-10000)
 const float Peri2MillilitersPerGallon = 6;   // Nutrient B---ADJUSTABLE VARIABLE (positive values only 1-10000)
-const float Peri3MillilitersPerGallon = 1.0;   // Acid---ADJUSTABLE VARIABLE (positive values only 1-10000)
+const float Peri3MillilitersPerGallon = 1.5;   // Acid---ADJUSTABLE VARIABLE (positive values only 1-10000)
 
   // Calculate total volume of liquid per refill for each peri
   float Peri1VolumePerRefill = TotalGallonsPerRefill * Peri1MillilitersPerGallon;
